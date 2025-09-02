@@ -7,7 +7,7 @@
   <style>
     :root{
       --bg:#0b0c10; --card:#121318; --ink:#e9eef6; --muted:#8a8f98;
-      --accent:#6aa7ff; --danger:#ff6b6b; --grid:#fff;
+      --accent:#6aa7ff; --danger:#ff6b6b; --grid:#ffffff;
     }
     html,body{height:100%}
     body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto}
@@ -22,7 +22,6 @@
     .tabs button{background:#10233c;border-color:#153258}
     .ghost{background:transparent;border-color:#2a2e35}
     .warn{background:#3a2f0c;border-color:#5e4a13}
-    .danger{background:#3a1214;border-color:#5e1b20}
     .legend{display:flex;gap:16px;font-size:12px;padding:8px 12px;color:var(--muted)}
       .chip{display:inline-flex;gap:8px;align-items:center}
       .chip .dot{width:16px;height:16px;border:1px solid var(--grid);border-radius:4px;position:relative}
@@ -37,11 +36,16 @@
     .cell:hover{background:rgba(106,167,255,.08)}
     .cell.busy:hover{background:rgba(255,107,107,.10)}
     .footer{padding:10px 12px;display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:12px;border-top:1px solid #1a1c22}
+
+    /* Day matrix */
     #dayPanel{display:none;padding:12px;border-top:1px dashed #2a2e35}
-    #dayTable{border-collapse:collapse;width:100%;margin-top:8px}
-    #dayTable th,#dayTable td{border:1px solid #2a2e35;padding:8px;text-align:left}
-    #dayTable th{background:#141722}
-    .status-inline{font-size:12px;color:var(--muted)}
+    #dayMatrix{overflow:auto;border:1px solid #2a2e35;border-radius:12px}
+    table.matrix{border-collapse:collapse;width:100%;background:#0b0d12}
+    .matrix th,.matrix td{border:1px solid #2a2e35;padding:6px 8px}
+    .matrix th{background:#141722;position:sticky;top:0}
+    .matrix .timeCol{position:sticky;left:0;background:#0f1116;color:var(--muted)}
+    .x{color:var(--danger);font-weight:800;text-align:center}
+
     @media (max-width:720px){
       .col-head{font-size:12px;padding:6px 4px;top:58px}
       .time{font-size:12px}
@@ -78,7 +82,7 @@
       <div id="seeControls" class="group" style="display:none">
         <label for="viewDay">Day</label>
         <select id="viewDay"></select>
-        <span class="status-inline">Team view (auto-refresh)</span>
+        <span id="dayLabel" style="color:var(--muted);font-size:12px"></span>
         <button id="copySummary" class="ghost">Copy summary</button>
       </div>
     </div>
@@ -94,11 +98,8 @@
     </div>
 
     <div id="dayPanel">
-      <div class="status-inline">Summary for <strong id="dayName"></strong></div>
-      <table id="dayTable">
-        <thead><tr><th>Person</th><th>Busy time ranges</th></tr></thead>
-        <tbody id="dayBody"></tbody>
-      </table>
+      <div class="status-inline">Matrix view for <strong id="matrixDayName"></strong></div>
+      <div id="dayMatrix"></div>
     </div>
 
     <div class="footer">
@@ -114,10 +115,10 @@
 </div>
 
 <script>
-// =================== CONFIG ===================
-// If the HTML and API are on the SAME Vercel project, keep it relative:
+// ===== CONFIG =====
+// If HTML and API are same Vercel project, keep relative:
 const API_URL = "/api/availability";
-// If HTML is hosted elsewhere, set your full Vercel URL:
+// If hosted elsewhere, use your full Vercel URL:
 // const API_URL = "https://<your-vercel-app>.vercel.app/api/availability";
 
 const DEFAULT_USERS = ["Harsha","Sarmad","Sneha Deshpande","Vinay","Bhavishya"];
@@ -125,18 +126,17 @@ const DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Satur
 const START_MIN = 0, END_MIN = 24*60, STEP = 30;
 const SLOTS = Math.floor((END_MIN-START_MIN)/STEP);
 
-// ---------- helpers ----------
 function minutesToLabel(m){
   const hh=Math.floor(m/60)%24, mm=m%60, ampm=hh>=12?"PM":"AM", h12=((hh+11)%12)+1;
   return `${h12}:${mm.toString().padStart(2,"0")} ${ampm}`;
 }
 function setStatus(msg){ document.getElementById("status").textContent = msg; }
 
-// ---------- state ----------
-let state = { users:{}, log:[] };
+// ===== State =====
+let state={users:{},log:[]};
 function ensureUser(name){
   if(!state.users[name]){
-    state.users[name] = Object.fromEntries(Array.from({length:7},(_,d)=>[`d${d}`, Array.from({length:SLOTS},()=>0)]));
+    state.users[name]=Object.fromEntries(Array.from({length:7},(_,d)=>[`d${d}`,Array.from({length:SLOTS},()=>0)]));
   }
 }
 function ensureDefaults(){
@@ -145,8 +145,8 @@ function ensureDefaults(){
   if(dl && !dl.children.length){ DEFAULT_USERS.forEach(u=>{ const o=document.createElement("option"); o.value=u; dl.appendChild(o); }); }
 }
 
-// ---------- grid ----------
-const grid = document.getElementById("grid");
+// ===== Grid =====
+const grid=document.getElementById("grid");
 function colHead(t){ const el=document.createElement("div"); el.className="col-head"; el.textContent=t; return el; }
 function timeCell(t){ const el=document.createElement("div"); el.className="time"; el.textContent=t; return el; }
 function buildGrid(){
@@ -162,7 +162,6 @@ function buildGrid(){
       grid.appendChild(b);
     }
   }
-  // day selector for team view
   const daySel=document.getElementById("viewDay");
   if(daySel && !daySel.options.length){ DAYS.forEach((n,idx)=>{const o=document.createElement("option");o.value=idx;o.textContent=n;daySel.appendChild(o);}); }
 }
@@ -182,7 +181,7 @@ function renderForUser(name){
 }
 
 function onCellClick(e){
-  if(currentTab!=="fill") return; // locked in Team view
+  if(currentTab!=="fill") return; // locked in team view
   const name=document.getElementById("user").value.trim();
   if(!name) return alert("Enter/select your name first");
   ensureUser(name);
@@ -197,17 +196,17 @@ function onCellClick(e){
   }
 }
 
-// ---------- clear helpers ----------
-function clearSelectedDayForUser(name, dayIndex){
+// ===== Clear helpers =====
+function clearSelectedDayForUser(name, dayIdx){
   ensureUser(name);
-  state.users[name][`d${dayIndex}`] = Array.from({length:SLOTS},()=>0);
+  state.users[name][`d${dayIdx}`]=Array.from({length:SLOTS},()=>0);
 }
 function clearWholeWeekForUser(name){
   ensureUser(name);
   for(let d=0;d<7;d++) state.users[name][`d${d}`]=Array.from({length:SLOTS},()=>0);
 }
 
-// ---------- load/save ----------
+// ===== Load/Save =====
 async function loadFromGitHub(){
   try{
     const r=await fetch(API_URL,{method:"GET"});
@@ -216,7 +215,7 @@ async function loadFromGitHub(){
     ensureDefaults();
     const name=document.getElementById("user").value.trim()||DEFAULT_USERS[0];
     document.getElementById("user").value=name;
-    renderForUser(name); renderLog(); renderDaySummary();
+    renderForUser(name); renderLog(); if(currentTab==="see") renderDayMatrix();
     setStatus("Loaded latest from GitHub.");
   }catch{ setStatus("Failed to load – network/API"); }
 }
@@ -243,7 +242,6 @@ function queueSave(user){
 
 async function saveToGitHub(){
   try{
-    // merge latest to avoid overwriting teammates
     const latestRes=await fetch(API_URL,{method:"GET"});
     const latest=latestRes.ok?await latestRes.json():{users:{},log:[]};
     const merged={users:{...latest.users, ...state.users}, log: state.log};
@@ -254,48 +252,44 @@ async function saveToGitHub(){
   }catch{ setStatus("Save failed – network/API"); }
 }
 
-// ---------- team day summary ----------
-function rangesFrom(arr){
-  const ranges=[]; let i=0;
-  while(i<arr.length){
-    if(arr[i]===1){
-      const s=i; while(i<arr.length && arr[i]===1) i++; const e=i;
-      ranges.push(`${minutesToLabel(START_MIN+s*STEP)} – ${minutesToLabel(START_MIN+e*STEP)}`);
-    } else i++;
-  }
-  return ranges;
-}
-function renderDaySummary(){
-  if(currentTab!=="see") return;
+// ===== “See by day” matrix =====
+function renderDayMatrix(){
   const dayIdx=+document.getElementById("viewDay").value||0;
-  document.getElementById("dayName").textContent = DAYS[dayIdx];
-  const tbody=document.getElementById("dayBody");
-  tbody.innerHTML="";
-  DEFAULT_USERS.forEach(u=>{
-    ensureUser(u);
-    const tr=document.createElement("tr");
-    const nameTd=document.createElement("td"); nameTd.textContent=u; tr.appendChild(nameTd);
-    const rangesTd=document.createElement("td");
-    const rangesList=rangesFrom(state.users[u][`d${dayIdx}`]||[]);
-    rangesTd.textContent = rangesList.length? rangesList.join(", ") : "Free all day";
-    tr.appendChild(rangesTd);
-    tbody.appendChild(tr);
-  });
+  document.getElementById("matrixDayName").textContent = DAYS[dayIdx];
+  document.getElementById("dayLabel").textContent = `• ${DAYS[dayIdx]}`;
+  const container=document.getElementById("dayMatrix");
+  const cols = ["Time", ...DEFAULT_USERS];
+  let html = `<table class="matrix"><thead><tr>${cols.map(c=>`<th>${c}</th>`).join("")}</tr></thead><tbody>`;
+  for(let i=0;i<SLOTS;i++){
+    const time = minutesToLabel(START_MIN+i*STEP);
+    const cells = DEFAULT_USERS.map(u=>{
+      const a = (state.users[u]?.[`d${dayIdx}`]||[]);
+      return `<td class="${a[i]===1?'x':''}">${a[i]===1?'✕':''}</td>`;
+    }).join("");
+    html += `<tr><td class="timeCol">${time}</td>${cells}</tr>`;
+  }
+  html += `</tbody></table>`;
+  container.innerHTML = html;
 }
 
 async function copyDaySummary(){
   const dayIdx=+document.getElementById("viewDay").value||0;
   const lines = DEFAULT_USERS.map(u=>{
     const arr=state.users[u]?.[`d${dayIdx}`]||[];
-    const r=rangesFrom(arr);
-    return `${u}: ${r.length? r.join(", "):"Free all day"}`;
+    const blocks=[], S=arr.length;
+    for(let i=0;i<S;){
+      if(arr[i]===1){ const s=i; while(i<S && arr[i]===1) i++; const e=i;
+        blocks.push(`${minutesToLabel(START_MIN+s*STEP)}–${minutesToLabel(START_MIN+e*STEP)}`); }
+      else i++;
+    }
+    return `${u}: ${blocks.length? blocks.join(", "):"Free all day"}`;
   });
   const txt = `Team availability for ${DAYS[dayIdx]}:\n`+lines.join("\n");
   await navigator.clipboard.writeText(txt);
   setStatus("Summary copied to clipboard.");
 }
 
-// ---------- log ----------
+// ===== Log =====
 function renderLog(){
   const el=document.getElementById("log"); if(!state.log?.length){ el.innerHTML="<div>No changes yet.</div>"; return; }
   el.innerHTML=state.log.slice(0,50).map(row=>{
@@ -308,48 +302,41 @@ function renderLog(){
   }).join("");
 }
 
-// ---------- tab switching ----------
+// ===== Tabs & hooks =====
 let currentTab="fill";
 function switchTo(tab){
   currentTab=tab;
   document.getElementById("fillControls").style.display = tab==="fill" ? "flex" : "none";
   document.getElementById("seeControls").style.display  = tab==="see"  ? "flex" : "none";
   document.getElementById("dayPanel").style.display     = tab==="see"  ? "block": "none";
-  if(tab==="see") renderDaySummary();
+  if(tab==="see") renderDayMatrix();
 }
-
-// ---------- hooks ----------
-buildGrid(); ensureDefaults();
-
 document.getElementById("tab-fill").addEventListener("click", ()=> switchTo("fill"));
 document.getElementById("tab-see").addEventListener("click",  ()=> switchTo("see"));
 
 document.getElementById("user").addEventListener("change", e=>{
   const name=e.target.value.trim(); if(!name) return; ensureUser(name); renderForUser(name);
 });
-
-document.getElementById("viewDay").addEventListener("change", renderDaySummary);
+document.getElementById("viewDay").addEventListener("change", renderDayMatrix);
 document.getElementById("copySummary").addEventListener("click", copyDaySummary);
-
 document.getElementById("clearDay").addEventListener("click", ()=>{
   const name=document.getElementById("user").value.trim(); if(!name) return alert("Enter/select your name first");
   const dayIdx=+document.getElementById("viewDay").value||0;
   clearSelectedDayForUser(name, dayIdx);
-  renderForUser(name); renderDaySummary(); queueSave(name);
+  renderForUser(name); if(currentTab==="see") renderDayMatrix(); queueSave(name);
 });
-
 document.getElementById("clearWeek").addEventListener("click", ()=>{
   const name=document.getElementById("user").value.trim(); if(!name) return alert("Enter/select your name first");
   clearWholeWeekForUser(name);
-  renderForUser(name); renderDaySummary(); queueSave(name);
+  renderForUser(name); if(currentTab==="see") renderDayMatrix(); queueSave(name);
 });
 
-// first load + live refresh
+// Build + initial load + auto refresh
+buildGrid(); ensureDefaults();
 (async function boot(){
   await loadFromGitHub();
-  // default selections
   document.getElementById("user").value = document.getElementById("user").value || DEFAULT_USERS[0];
-  document.getElementById("viewDay").value = "1"; // Monday
+  document.getElementById("viewDay").value = "1"; // Monday default
   setInterval(loadFromGitHub, 20000);
   setStatus("Ready. Autosave is ON.");
 })();

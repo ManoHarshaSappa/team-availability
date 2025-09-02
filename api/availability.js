@@ -10,6 +10,7 @@ export default async function handler(req, res) {
     GITHUB_FILE_PATH = "availability.json",
     GITHUB_BRANCH = "main",
   } = process.env;
+
   if (!GITHUB_TOKEN || !GITHUB_OWNER || !GITHUB_REPO)
     return res.status(500).send("Missing GitHub env vars");
 
@@ -28,9 +29,11 @@ export default async function handler(req, res) {
   if (req.method === "POST") {
     const body = req.body || {};
     const pretty = JSON.stringify(body, null, 2);
+
     let sha;
     const head = await fetch(`${base}?ref=${GITHUB_BRANCH}`, { headers });
     if (head.ok) { const j = await head.json(); sha = j.sha; }
+
     const put = await fetch(base, {
       method:"PUT",
       headers:{ ...headers, "Content-Type":"application/json" },
@@ -40,11 +43,12 @@ export default async function handler(req, res) {
         sha, branch: GITHUB_BRANCH
       })
     });
+
     if (!put.ok) return res.status(put.status).send(await put.text());
     const out = await put.json();
     return res.json({ ok:true, commit: out.commit?.sha?.slice(0,7) });
   }
 
-  res.setHeader("Allow", "GET,POST,OPTIONS");
+  res.setHeader("Allow","GET,POST,OPTIONS");
   return res.status(405).end("Method Not Allowed");
 }
