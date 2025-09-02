@@ -1,58 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Team Availability</title>
-  <style>
-    :root{
-      --bg:#0b0c10; --card:#121318; --ink:#e9eef6; --muted:#8a8f98;
-      --accent:#6aa7ff; --danger:#ff6b6b; --grid:#ffffff; /* WHITE BORDERS */
-    }
-    html,body{height:100%}
-    body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto}
-    .container{max-width:1120px;margin:24px auto;padding:0 16px}
-    h1{margin:0 0 12px 0;font-size:22px}
-    .card{background:var(--card);border:1px solid var(--grid);border-radius:14px;box-shadow:0 1px 0 #000,0 30px 80px rgba(0,0,0,.35);overflow:hidden}
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Team Availability</title>
+<style>
+  :root{ --bg:#0b0c10; --card:#121318; --ink:#e9eef6; --muted:#8a8f98;
+         --accent:#6aa7ff; --danger:#ff6b6b; --grid:#ffffff; }
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto}
+  .container{max-width:1120px;margin:24px auto;padding:0 16px}
+  h1{margin:0 0 12px 0;font-size:22px}
+  .card{background:var(--card);border:1px solid #1a1c22;border-radius:14px;box-shadow:0 1px 0 #000,0 30px 80px rgba(0,0,0,.35)}
+  .toolbar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:10px;padding:12px;border-bottom:1px solid #1a1c22}
+  .group{display:flex;gap:8px;align-items:center}
+  label{font-size:12px;color:var(--muted)}
+  input[type=text],select,button{background:#0f1116;color:var(--ink);border:1px solid #2a2e35;border-radius:10px;padding:8px 10px}
+  input[type=text]:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(106,167,255,.12)}
+  .tabs button{background:#10233c;border-color:#153258}
+  .ghost{background:transparent;border-color:#2a2e35}
+  .warn{background:#3a2f0c;border-color:#5e4a13}
+  .danger{background:#3a1214;border-color:#5e1b20}
+  .ok{background:#103623;border-color:#174f32}
+  .legend{display:flex;gap:16px;font-size:12px;padding:8px 12px;color:var(--muted)}
+    .chip{display:inline-flex;gap:8px;align-items:center}
+    .chip .dot{width:16px;height:16px;border:1px solid var(--grid);border-radius:4px;position:relative}
+    .chip .dot.busy::after{content:"✕";position:absolute;inset:0;display:grid;place-items:center;color:var(--danger);font-weight:700;font-size:12px}
+  .grid-wrap{overflow:auto}
+  .grid{display:grid;grid-template-columns:88px repeat(7,1fr);background:#0b0d12;border-top:1px solid var(--grid);border-left:1px solid var(--grid)}
+  .col-head,.time,.cell{border-right:1px solid var(--grid);border-bottom:1px solid var(--grid)}
+  .col-head{position:sticky;top:0;z-index:2;background:#141722;text-align:center;padding:8px 6px;font-weight:600}
+  .time{background:#0f1116;color:var(--muted);padding:6px 8px;position:sticky;left:0;z-index:1;font-variant-numeric:tabular-nums}
+  .cell{height:30px;background:transparent;border:none}
+  .cell.busy::after{content:"✕";color:var(--danger);font-weight:800;display:grid;place-items:center}
+  .cell:hover{background:rgba(106,167,255,.08)}
+  .cell.busy:hover{background:rgba(255,107,107,.10)}
+  .footer{padding:10px 12px;display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:12px;border-top:1px solid #1a1c22}
 
-    .toolbar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:10px;padding:12px;border-bottom:1px solid var(--grid)}
-    .group{display:flex;gap:8px;align-items:center}
-    label{font-size:12px;color:var(--muted)}
-    input[type=text],select,button{background:#0f1116;color:var(--ink);border:1px solid var(--grid);border-radius:10px;padding:8px 10px}
-    input[type=text]:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(106,167,255,.12)}
-    .tabs button{background:#10233c;border-color:var(--grid)}
-    .ghost{background:transparent}
-    .warn{background:#3a2f0c;border-color:var(--grid)}
-    .legend{display:flex;gap:16px;font-size:12px;padding:8px 12px;color:var(--muted);border-bottom:1px solid var(--grid)}
-      .chip{display:inline-flex;gap:8px;align-items:center}
-      .chip .dot{width:16px;height:16px;border:1px solid var(--grid);border-radius:4px;position:relative}
-      .chip .dot.busy::after{content:"✕";position:absolute;inset:0;display:grid;place-items:center;color:var(--danger);font-weight:700;font-size:12px}
-    .grid-wrap{overflow:auto}
-    .grid{display:grid;grid-template-columns:88px repeat(7,1fr);background:#0b0d12;border-top:1px solid var(--grid);border-left:1px solid var(--grid)}
-    .col-head,.time,.cell{border-right:1px solid var(--grid);border-bottom:1px solid var(--grid)}
-    .col-head{position:sticky;top:0;z-index:2;background:#141722;text-align:center;padding:8px 6px;font-weight:600}
-    .time{background:#0f1116;color:var(--muted);padding:6px 8px;position:sticky;left:0;z-index:1;font-variant-numeric:tabular-nums;text-align:right}
-    .cell{height:30px;background:transparent;border:none}
-    .cell.busy::after{content:"✕";color:var(--danger);font-weight:800;display:grid;place-items:center}
-    .cell:hover{background:rgba(106,167,255,.08)}
-    .cell.busy:hover{background:rgba(255,107,107,.10)}
-    .footer{padding:10px 12px;display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:12px;border-top:1px solid var(--grid)}
+  /* Day matrix */
+  #dayPanel{display:none;padding:12px;border-top:1px dashed #2a2e35}
+  #dayMatrix{overflow:auto;border:1px solid #2a2e35;border-radius:12px}
+  table.matrix{border-collapse:collapse;width:100%;background:#0b0d12}
+  .matrix th,.matrix td{border:1px solid #2a2e35;padding:6px 8px}
+  .matrix th{background:#141722;position:sticky;top:0}
+  .matrix .timeCol{position:sticky;left:0;background:#0f1116;color:var(--muted)}
+  .x{color:var(--danger);font-weight:800;text-align:center}
 
-    /* Day matrix */
-    #dayPanel{display:none;padding:12px;border-top:1px dashed var(--grid)}
-    #dayMatrix{overflow:auto;border:1px solid var(--grid);border-radius:12px}
-    table.matrix{border-collapse:collapse;width:100%;background:#0b0d12;border:1px solid var(--grid)}
-    .matrix th,.matrix td{border:1px solid var(--grid);padding:6px 8px}
-    .matrix th{background:#141722;position:sticky;top:0}
-    .matrix .timeCol{position:sticky;left:0;background:#0f1116;color:var(--muted);text-align:right}
-    .x{color:var(--danger);font-weight:800;text-align:center}
-
-    @media (max-width:720px){
-      .col-head{font-size:12px;padding:6px 4px;top:58px}
-      .time{font-size:12px}
-      .cell{height:36px}
-    }
-  </style>
+  @media (max-width:720px){
+    .col-head{font-size:12px;padding:6px 4px;top:58px}
+    .time{font-size:12px}
+    .cell{height:36px}
+  }
+</style>
 </head>
 <body>
 <div class="container">
@@ -65,10 +64,10 @@
         <button id="tab-see">See by day</button>
       </div>
 
+      <!-- Fill controls -->
       <div id="fillControls" class="group">
         <label for="user">Your name</label>
-        <input id="user" type="text" placeholder="e.g., Harsha" list="users-list" />
-        <datalist id="users-list"></datalist>
+        <select id="user"></select>
 
         <label for="edit">Edit</label>
         <select id="edit">
@@ -76,10 +75,14 @@
           <option value="clear">Mark free</option>
         </select>
 
-        <button id="clearDay" class="ghost">Clear selected day</button>
-        <button id="clearWeek" class="warn">Clear entire week</button>
+        <button id="clearDay"  class="ghost">Clear selected day</button>
+        <button id="clearWeek" class="warn">Clear week</button>
+        <button id="clearAll"  class="danger">Clear ALL</button>
+
+        <button id="sync" class="ok">Sync to GitHub</button>
       </div>
 
+      <!-- See-by-day controls -->
       <div id="seeControls" class="group" style="display:none">
         <label for="viewDay">Day</label>
         <select id="viewDay"></select>
@@ -91,7 +94,7 @@
     <div class="legend">
       <span class="chip"><span class="dot"></span> Free (leave empty)</span>
       <span class="chip"><span class="dot busy"></span> Busy (red ✕)</span>
-      <span>Autosaves to GitHub after you click cells</span>
+      <span>Fast local save • Click <b>Sync to GitHub</b> to push changes</span>
     </div>
 
     <div class="grid-wrap">
@@ -104,8 +107,8 @@
     </div>
 
     <div class="footer">
-      <span id="status">Ready. Autosave is ON.</span>
-      <span>Tip: pick your name, click cells.</span>
+      <span id="status">Ready. Local save is ON.</span>
+      <span>Tip: choose your name, click cells.</span>
     </div>
   </div>
 
@@ -116,32 +119,51 @@
 </div>
 
 <script>
-// ===== CONFIG =====
-const API_URL = "/api/availability"; // same Vercel project
+/* =================== CONFIG =================== */
+// If HTML and API are the SAME Vercel project, keep relative:
+const API_URL = "/api/availability";
+// If hosted elsewhere, use full Vercel URL:
+// const API_URL = "https://<your-vercel-app>.vercel.app/api/availability";
+
 const DEFAULT_USERS = ["Harsha","Sarmad","Sneha Deshpande","Vinay","Bhavishya"];
 const DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const START_MIN = 0, END_MIN = 24*60, STEP = 30;
 const SLOTS = Math.floor((END_MIN-START_MIN)/STEP);
-function minutesToLabel(m){ const hh=Math.floor(m/60)%24, mm=m%60, ampm=hh>=12?"PM":"AM", h12=((hh+11)%12)+1; return `${h12}:${mm.toString().padStart(2,"0")} ${ampm}`; }
+const LS_KEY = "teamAvailabilityData:v1";
+
+/* =================== HELPERS =================== */
+function minutesToLabel(m){
+  const hh=Math.floor(m/60)%24, mm=m%60, ampm=hh>=12?"PM":"AM", h12=((hh+11)%12)+1;
+  return `${h12}:${mm.toString().padStart(2,"0")} ${ampm}`;
+}
 function setStatus(msg){ document.getElementById("status").textContent = msg; }
 
-// ===== State =====
-let state={users:{},log:[]};
+/* =================== STATE =================== */
+let state = { users:{}, log:[] };
+
+function blankWeek(){
+  return Object.fromEntries(Array.from({length:7},(_,d)=>[`d${d}`, Array.from({length:SLOTS},()=>0)]));
+}
 function ensureUser(name){
-  if(!state.users[name]){
-    state.users[name]=Object.fromEntries(Array.from({length:7},(_,d)=>[`d${d}`,Array.from({length:SLOTS},()=>0)]));
-  }
+  if(!state.users[name]) state.users[name] = blankWeek();
 }
 function ensureDefaults(){
   DEFAULT_USERS.forEach(ensureUser);
-  const dl=document.getElementById("users-list");
-  if(dl && !dl.children.length){ DEFAULT_USERS.forEach(u=>{ const o=document.createElement("option"); o.value=u; dl.appendChild(o); }); }
+  const sel=document.getElementById("user");
+  if(sel.options.length===0){
+    DEFAULT_USERS.forEach(u=>{ const o=document.createElement("option"); o.value=u; o.textContent=u; sel.appendChild(o); });
+  }
+  const daySel=document.getElementById("viewDay");
+  if(daySel.options.length===0){
+    DAYS.forEach((n,i)=>{ const o=document.createElement("option"); o.value=i; o.textContent=n; daySel.appendChild(o); });
+  }
 }
 
-// ===== Grid =====
+/* =================== GRID =================== */
 const grid=document.getElementById("grid");
 function colHead(t){ const el=document.createElement("div"); el.className="col-head"; el.textContent=t; return el; }
 function timeCell(t){ const el=document.createElement("div"); el.className="time"; el.textContent=t; return el; }
+
 function buildGrid(){
   grid.innerHTML="";
   grid.appendChild(colHead("Time"));
@@ -155,8 +177,6 @@ function buildGrid(){
       grid.appendChild(b);
     }
   }
-  const daySel=document.getElementById("viewDay");
-  if(daySel && !daySel.options.length){ DAYS.forEach((n,idx)=>{const o=document.createElement("option");o.value=idx;o.textContent=n;daySel.appendChild(o);}); }
 }
 
 function renderForUser(name){
@@ -174,128 +194,100 @@ function renderForUser(name){
 }
 
 function onCellClick(e){
-  if(currentTab!=="fill") return; // locked in team view
-  const name=document.getElementById("user").value.trim();
-  if(!name) return alert("Enter/select your name first");
+  if(currentTab!=="fill") return; // locked in see view
+  const name=document.getElementById("user").value;
   ensureUser(name);
   const d=+e.currentTarget.dataset.day, i=+e.currentTarget.dataset.slot;
   const mode=document.getElementById("edit").value;
-  const v = (mode==="mark") ? 1 : 0; // mark busy OR mark free
+  const val=(mode==="mark")?1:0;
   const arr=state.users[name][`d${d}`];
-  if(arr[i]!==v){
-    arr[i]=v;
-    e.currentTarget.classList.toggle("busy", v===1);
-    queueSave(name);
+  if(arr[i]!==val){
+    arr[i]=val;
+    e.currentTarget.classList.toggle("busy", val===1);
+    saveLocal(); // fast local save
+    logChange(name, d, i, val);
   }
 }
 
-// ===== Clear helpers =====
-function clearSelectedDayForUser(name, dayIdx){
-  ensureUser(name);
-  state.users[name][`d${dayIdx}`]=Array.from({length:SLOTS},()=>0);
-}
-function clearWholeWeekForUser(name){
-  ensureUser(name);
-  for(let d=0;d<7;d++) state.users[name][`d${d}`]=Array.from({length:SLOTS},()=>0);
-}
-
-// ===== Load/Save (GitHub via API) =====
-async function loadFromGitHub(){
+/* =================== LOCAL STORAGE =================== */
+function saveLocal(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+function loadLocal(){
   try{
-    const r=await fetch(API_URL,{method:"GET"});
-    if(!r.ok){ setStatus("Failed to load – configure API"); return; }
-    const data=await r.json(); state.users=data.users||{}; state.log=data.log||[];
-    ensureDefaults();
-    const name=document.getElementById("user").value.trim()||DEFAULT_USERS[0];
-    document.getElementById("user").value=name;
-    renderForUser(name); renderLog(); if(currentTab==="see") renderDayMatrix();
-    setStatus("Loaded latest from GitHub.");
-  }catch{ setStatus("Failed to load – network/API"); }
+    const raw=localStorage.getItem(LS_KEY);
+    if(raw){ const j=JSON.parse(raw); state.users=j.users||{}; state.log=j.log||[]; }
+  }catch{}
 }
 
-function collectSnapshotFor(user){
-  ensureUser(user);
-  const snap=Object.fromEntries(Array.from({length:7},(_,d)=>[
-    `d${d}`, Array.from({length:SLOTS},(__,i)=> document.querySelector(`.cell[data-day="${d}"][data-slot="${i}"]`).classList.contains("busy")?1:0 )
-  ]));
-  const prev=state.users[user]||{};
-  const diffs=[];
-  for(let d=0;d<7;d++){ const k=`d${d}`; for(let i=0;i<SLOTS;i++){ if((prev[k]?.[i]||0)!==snap[k][i]) diffs.push({day:d,slot:i,value:snap[k][i]}); } }
-  state.users[user]=snap;
-  state.log.unshift({ts:new Date().toISOString(),user,reason:"update",changes:diffs.slice(0,600)});
-  state.log=state.log.slice(0,5000);
+/* =================== GITHUB SYNC =================== */
+function logChange(user, day, slot, value){
+  state.log.unshift({ ts:new Date().toISOString(), user, reason:"update", changes:[{day,slot,value}] });
+  state.log = state.log.slice(0,5000);
+  renderLog();
 }
-
-let saveTimer=null;
-function queueSave(user){
-  collectSnapshotFor(user);
-  clearTimeout(saveTimer);
-  saveTimer=setTimeout(saveToGitHub, 800);
-}
-
-async function saveToGitHub(){
+async function syncToGitHub(){
+  setStatus("Syncing to GitHub…");
   try{
-    const latestRes=await fetch(API_URL,{method:"GET"});
-    const latest=latestRes.ok?await latestRes.json():{users:{},log:[]};
-    const merged={users:{...latest.users, ...state.users}, log: state.log};
-    const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(merged)});
-    if(!r.ok){ setStatus("Save failed – check API"); return; }
-    const out=await r.json();
-    setStatus("Autosaved. Commit: "+(out.commit||"ok"));
-  }catch{ setStatus("Save failed – network/API"); }
+    // merge with latest to avoid overwriting others
+    const latest = await fetch(API_URL).then(r=>r.ok?r.json():{users:{},log:[]});
+    const merged = { users: { ...latest.users, ...state.users }, log: state.log };
+    const r = await fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(merged)});
+    if(!r.ok){ const t=await r.text(); setStatus("Sync failed: "+t); return; }
+    const out = await r.json();
+    setStatus("Synced to GitHub. Commit: "+(out.commit||"ok"));
+  }catch(e){ setStatus("Sync failed – network/API"); }
 }
 
-// ===== “See by day” matrix =====
+/* =================== SEE-BY-DAY MATRIX =================== */
 function renderDayMatrix(){
   const dayIdx=+document.getElementById("viewDay").value||0;
   document.getElementById("matrixDayName").textContent = DAYS[dayIdx];
   document.getElementById("dayLabel").textContent = `• ${DAYS[dayIdx]}`;
   const container=document.getElementById("dayMatrix");
-  const cols = ["Time", ...DEFAULT_USERS];
-  let html = `<table class="matrix"><thead><tr>${cols.map(c=>`<th>${c}</th>`).join("")}</tr></thead><tbody>`;
+  const cols=["Time",...DEFAULT_USERS];
+  let html=`<table class="matrix"><thead><tr>${cols.map(c=>`<th>${c}</th>`).join("")}</tr></thead><tbody>`;
   for(let i=0;i<SLOTS;i++){
-    const time = minutesToLabel(START_MIN+i*STEP);
-    const cells = DEFAULT_USERS.map(u=>{
-      const a = (state.users[u]?.[`d${dayIdx}`]||[]);
+    const time=minutesToLabel(START_MIN+i*STEP);
+    const cells=DEFAULT_USERS.map(u=>{
+      const a=(state.users[u]?.[`d${dayIdx}`]||[]);
       return `<td class="${a[i]===1?'x':''}">${a[i]===1?'✕':''}</td>`;
     }).join("");
-    html += `<tr><td class="timeCol">${time}</td>${cells}</tr>`;
+    html+=`<tr><td class="timeCol">${time}</td>${cells}</tr>`;
   }
-  html += `</tbody></table>`;
-  container.innerHTML = html;
+  html+=`</tbody></table>`;
+  container.innerHTML=html;
 }
 
 async function copyDaySummary(){
-  const dayIdx=+document.getElementById("viewDay").value||0;
+  const d=+document.getElementById("viewDay").value||0;
   const lines = DEFAULT_USERS.map(u=>{
-    const arr=state.users[u]?.[`d${dayIdx}`]||[];
-    const blocks=[], S=arr.length;
-    for(let i=0;i<S;){
-      if(arr[i]===1){ const s=i; while(i<S && arr[i]===1) i++; const e=i;
-        blocks.push(`${minutesToLabel(START_MIN+s*STEP)}–${minutesToLabel(START_MIN+e*STEP)}`); }
-      else i++;
-    }
-    return `${u}: ${blocks.length? blocks.join(", "):"Free all day"}`;
+    const arr=state.users[u]?.[`d${d}`]||[];
+    const blocks=[]; for(let i=0;i<arr.length;){ if(arr[i]===1){ const s=i; while(i<arr.length&&arr[i]===1)i++; const e=i; blocks.push(`${minutesToLabel(START_MIN+s*STEP)}–${minutesToLabel(START_MIN+e*STEP)}`);} else i++; }
+    return `${u}: ${blocks.length?blocks.join(", "):"Free all day"}`;
   });
-  const txt = `Team availability for ${DAYS[dayIdx]}:\n`+lines.join("\n");
+  const txt = `Team availability for ${DAYS[d]}:\n` + lines.join("\n");
   await navigator.clipboard.writeText(txt);
   setStatus("Summary copied to clipboard.");
 }
 
-// ===== Log =====
+/* =================== LOG =================== */
 function renderLog(){
   const el=document.getElementById("log"); if(!state.log?.length){ el.innerHTML="<div>No changes yet.</div>"; return; }
   el.innerHTML=state.log.slice(0,50).map(row=>{
     const when=new Date(row.ts).toLocaleString(); const n=row.changes?.length||0;
-    return `<div style="padding:6px 0;border-bottom:1px dashed var(--grid)">
+    return `<div style="padding:6px 0;border-bottom:1px dashed #22242b">
       <strong>${row.user||"Unknown"}</strong>
-      <span style="font-size:11px;padding:2px 8px;border:1px solid var(--grid);border-radius:999px;background:#0f1116;margin-left:6px">${row.reason||"update"}</span>
+      <span style="font-size:11px;padding:2px 8px;border:1px solid #2a2e35;border-radius:999px;background:#0f1116;margin-left:6px">${row.reason||"update"}</span>
       edited <strong>${n}</strong> slot${n===1?"":"s"} <span style="color:var(--muted)">(${when})</span>
     </div>`;
   }).join("");
 }
 
-// ===== Tabs & hooks =====
+/* =================== CLEAR ACTIONS =================== */
+function clearSelectedDayForUser(name, dayIdx){ ensureUser(name); state.users[name][`d${dayIdx}`]=Array.from({length:SLOTS},()=>0); }
+function clearWholeWeekForUser(name){ ensureUser(name); for(let d=0;d<7;d++) state.users[name][`d${d}`]=Array.from({length:SLOTS},()=>0); }
+function clearAllUsers(){ state.users={}; ensureDefaults(); }
+
+/* =================== TABS & HOOKS =================== */
 let currentTab="fill";
 function switchTo(tab){
   currentTab=tab;
@@ -304,35 +296,40 @@ function switchTo(tab){
   document.getElementById("dayPanel").style.display     = tab==="see"  ? "block": "none";
   if(tab==="see") renderDayMatrix();
 }
+
 document.getElementById("tab-fill").addEventListener("click", ()=> switchTo("fill"));
 document.getElementById("tab-see").addEventListener("click",  ()=> switchTo("see"));
 
 document.getElementById("user").addEventListener("change", e=>{
-  const name=e.target.value.trim(); if(!name) return; ensureUser(name); renderForUser(name);
+  const name=e.target.value; ensureUser(name); renderForUser(name);
 });
 document.getElementById("viewDay").addEventListener("change", renderDayMatrix);
 document.getElementById("copySummary").addEventListener("click", copyDaySummary);
+
 document.getElementById("clearDay").addEventListener("click", ()=>{
-  const name=document.getElementById("user").value.trim(); if(!name) return alert("Enter/select your name first");
-  const dayIdx=+document.getElementById("viewDay").value||0;
-  clearSelectedDayForUser(name, dayIdx);
-  renderForUser(name); if(currentTab==="see") renderDayMatrix(); queueSave(name);
+  const name=document.getElementById("user").value; const d=+document.getElementById("viewDay").value||0;
+  clearSelectedDayForUser(name,d); renderForUser(name); if(currentTab==="see") renderDayMatrix(); saveLocal(); logChange(name,d,"*",0);
 });
 document.getElementById("clearWeek").addEventListener("click", ()=>{
-  const name=document.getElementById("user").value.trim(); if(!name) return alert("Enter/select your name first");
-  clearWholeWeekForUser(name);
-  renderForUser(name); if(currentTab==="see") renderDayMatrix(); queueSave(name);
+  const name=document.getElementById("user").value;
+  clearWholeWeekForUser(name); renderForUser(name); if(currentTab==="see") renderDayMatrix(); saveLocal(); logChange(name,"*","*",0);
+});
+document.getElementById("clearAll").addEventListener("click", ()=>{
+  if(!confirm("Clear ALL users? This only resets your browser copy. Use Sync to push.")) return;
+  clearAllUsers(); renderForUser(document.getElementById("user").value); if(currentTab==="see") renderDayMatrix(); saveLocal(); setStatus("Cleared all (local).");
 });
 
-// Build + initial load + auto refresh
-buildGrid(); ensureDefaults();
-(async function boot(){
-  await loadFromGitHub();
-  document.getElementById("user").value = document.getElementById("user").value || DEFAULT_USERS[0];
-  document.getElementById("viewDay").value = "0"; // Sunday default
-  setInterval(loadFromGitHub, 20000); // pull latest regularly
-  setStatus("Ready. Autosave is ON.");
-})();
+document.getElementById("sync").addEventListener("click", syncToGitHub);
+
+/* =================== BOOT =================== */
+buildGrid();
+loadLocal();
+ensureDefaults();
+document.getElementById("user").value = DEFAULT_USERS[0];
+renderForUser(DEFAULT_USERS[0]);
+document.getElementById("viewDay").value = "0"; // Sunday default
+renderLog();
+setStatus("Ready. Local save is ON.");
 </script>
 </body>
 </html>
