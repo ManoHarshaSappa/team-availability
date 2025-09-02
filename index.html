@@ -15,7 +15,7 @@
       --grid-border: #ffffff; /* White lines to highlight cells */
     }
     html, body { height: 100%; }
-    body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto; }
     .container { max-width: 1120px; margin: 24px auto; padding: 0 16px; }
     .heading { display:flex; gap:12px; align-items:center; justify-content: space-between; margin-bottom: 12px; }
     h1 { font-size: 22px; margin: 0; letter-spacing: .2px; }
@@ -28,10 +28,7 @@
     input[type="text"], select, button { background: #0f1116; color: var(--ink); border: 1px solid #2a2e35; border-radius: 10px; padding: 8px 10px; }
     input[type="text"]:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(106,167,255,.12); outline: none; }
     button { cursor: pointer; border-radius: 10px; }
-    .btn-primary { background:#10233c; border-color:#153258; }
-    .btn-success { background:#103623; border-color:#174f32; }
-    .btn-warning { background:#3a2f0c; border-color:#5e4a13; }
-    .btn-danger  { background:#3a1214; border-color:#5e1b20; }
+    .btn-primary { background:#10233c; border-color:#153258; color:var(--ink); }
 
     .legend { display:flex; gap: 16px; font-size: 12px; padding: 8px 12px; color: var(--muted); }
     .chip { display:inline-flex; align-items:center; gap:8px; }
@@ -69,51 +66,33 @@
     <div class="card" id="board">
       <div class="toolbar">
         <div class="group">
+          <button id="tabFill" class="btn-primary">Fill availability</button>
+          <button id="tabSee" class="btn-primary">See by day</button>
+        </div>
+
+        <div class="group" id="fillControls">
           <label for="user">Your name</label>
           <input id="user" type="text" placeholder="e.g., Harsha" list="users-list" />
           <datalist id="users-list"></datalist>
-        </div>
-        <div class="group">
-          <label for="uiMode">Mode</label>
-          <select id="uiMode">
-            <option value="update">Update (edit my grid)</option>
-            <option value="view">View (see day by team)</option>
-          </select>
-        </div>
-        <div class="group" id="editControls">
+
           <label for="mode">Edit</label>
           <select id="mode">
-            <option value="toggle">Toggle on click</option>
             <option value="mark">Mark Busy</option>
             <option value="clear">Clear</option>
           </select>
         </div>
-        <div class="group">
-          <label for="reason">Tag</label>
-          <select id="reason">
-            <option value="schedule">Schedule</option>
-            <option value="class">Class</option>
-            <option value="work">Work</option>
-            <option value="travel">Travel</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-        <div class="group view-only" id="viewControls" style="display:none">
+
+        <div class="group" id="seeControls" style="display:none">
           <label for="viewDay">Day</label>
           <select id="viewDay"></select>
-          <button class="btn-primary" id="refreshView">Refresh view</button>
-        </div>
-        <div class="group">
-          <button class="btn-warning" id="load">Load latest from GitHub</button>
-          <button class="btn-success" id="save">Save my changes</button>
-          <button class="btn-danger" id="resetUser">Clear my grid</button>
+          <span class="status">Live view (auto-refresh)</span>
         </div>
       </div>
 
       <div class="legend">
         <span class="chip"><span class="cell"></span> Free (leave empty)</span>
         <span class="chip"><span class="cell busy"></span> Busy (red ✕)</span>
-        <span>Half‑hour slots • Everyone can view updates after refresh/load</span>
+        <span>Autosaves to GitHub after you click cells</span>
       </div>
 
       <div class="grid-wrap">
@@ -126,8 +105,8 @@
       </div>
 
       <div class="footer">
-        <span id="status">Ready.</span>
-        <span>Tip: pick your name, click cells to add ✕, then Save.</span>
+        <span id="status">Ready. Autosave is ON.</span>
+        <span>Tip: choose your name, click cells.</span>
       </div>
     </div>
 
@@ -135,32 +114,27 @@
       <summary style="cursor:pointer; color:var(--muted)">Change log (last 50)</summary>
       <div id="log" style="font-family: ui-monospace, Menlo, Consolas, monospace; font-size:12px; padding-top:8px; max-height:260px; overflow:auto"></div>
     </details>
-
-    <p class="status" style="margin-top:10px; color:var(--muted)">
-      Storage: This page saves a JSON file in your GitHub repo via a serverless API (notes at the bottom of this file). No localStorage.
-    </p>
   </div>
 
 <script>
 // =================== CONFIG ===================
-const API_URL = "/api/availability";           // Your serverless endpoint
-const REPO_VIEW_URL = "";                       // Optional: link to JSON in repo
-const DEFAULT_USERS = ["Harsha","Sarmad","Sneha Deshpande","Vinay","Bhavishya"];
+// If HTML and API are on Vercel together, keep this:
+const API_URL = "/api/availability";
+// If HTML is on a different host, use full URL:
+// const API_URL = "https://<your-app>.vercel.app/api/availability";
 
-// ============== TIME / GRID SETUP =============
+const DEFAULT_USERS = ["Harsha","Sarmad","Sneha Deshpande","Vinay","Bhavishya"];
 const DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-const START_MINUTES = 0;    // 00:00
-const END_MINUTES   = 24*60;// 24:00
-const SLOT_MINUTES  = 30;   // half-hour
+const START_MINUTES = 0, END_MINUTES = 24*60, SLOT_MINUTES = 30;
 const SLOTS = Math.floor((END_MINUTES-START_MINUTES)/SLOT_MINUTES);
 
 function minutesToLabel(m){
-  const hh = Math.floor(m/60) % 24; const mm = m % 60;
-  const ampm = hh>=12?"PM":"AM"; const h12 = ((hh+11)%12)+1; // 0→12
+  const hh = Math.floor(m/60) % 24, mm = m % 60;
+  const ampm = hh>=12?"PM":"AM", h12 = ((hh+11)%12)+1;
   return `${h12}:${mm.toString().padStart(2,'0')} ${ampm}`;
 }
 
-// ============== BUILD GRID UI =================
+// ===== Build grid =====
 const gridEl = document.getElementById('grid');
 function buildGrid(){
   gridEl.innerHTML = '';
@@ -176,7 +150,6 @@ function buildGrid(){
       gridEl.appendChild(btn);
     }
   }
-  // Day dropdown in view mode
   const viewDay = document.getElementById('viewDay');
   if(viewDay && !viewDay.options.length){
     DAYS.forEach((name, idx)=>{ const o=document.createElement('option'); o.value=String(idx); o.textContent=name; viewDay.appendChild(o); });
@@ -185,7 +158,7 @@ function buildGrid(){
 function colHead(t){ const el=document.createElement('div'); el.className='col-head'; el.textContent=t; return el; }
 function timeCell(t){ const el=document.createElement('div'); el.className='time'; el.textContent=t; return el; }
 
-// ============== STATE ========================
+// ===== State =====
 let state = { users:{}, log:[] };
 function ensureUser(name){
   if(!state.users[name]){
@@ -195,183 +168,130 @@ function ensureUser(name){
 function ensureDefaults(){
   DEFAULT_USERS.forEach(ensureUser);
   const dl = document.getElementById('users-list');
-  if(dl && dl.children.length === 0){ DEFAULT_USERS.forEach(u=>{ const o=document.createElement('option'); o.value=u; dl.appendChild(o); }); }
+  if(dl && !dl.children.length){ DEFAULT_USERS.forEach(u=>{ const o=document.createElement('option'); o.value=u; dl.appendChild(o); }); }
 }
 
-// ============== RENDER / INTERACTION =========
-function renderForUser(name){
-  ensureUser(name);
-  document.querySelectorAll('.cell-btn').forEach(btn=>btn.classList.remove('busy'));
-  for(let d=0; d<7; d++){
-    const arr = state.users[name][`d${d}`];
-    for(let i=0;i<SLOTS;i++) if(arr[i]===1){
-      const btn = document.querySelector(`.cell-btn[data-day="${d}"][data-slot="${i}"]`);
-      if(btn) btn.classList.add('busy');
-    }
-  }
+// ===== UI / Interaction =====
+let activeTab = 'fill';
+function switchTab(tab){
+  activeTab = tab;
+  document.getElementById('fillControls').style.display = tab==='fill' ? 'flex' : 'none';
+  document.getElementById('seeControls').style.display  = tab==='see'  ? 'flex' : 'none';
+  document.getElementById('dayViewPanel').style.display = tab==='see'  ? 'block': 'none';
+  if(tab==='see') renderDayView();
 }
 
 function onCellClick(e){
-  if(document.getElementById('uiMode').value!=="update") return; // view mode disables edits
+  if(activeTab!=='fill') return;
   const user = document.getElementById('user').value.trim();
   if(!user) return alert('Enter/select your name first');
   ensureUser(user);
-  const d = Number(e.currentTarget.dataset.day); const s = Number(e.currentTarget.dataset.slot);
+  const d = +e.currentTarget.dataset.day, s = +e.currentTarget.dataset.slot;
   const arr = state.users[user][`d${d}`];
-  const mode = document.getElementById('mode').value;
-  let v = arr[s];
-  if(mode==='toggle') v = v?0:1; else if(mode==='mark') v = 1; else if(mode==='clear') v = 0;
-  if(v!==arr[s]){ arr[s]=v; e.currentTarget.classList.toggle('busy', v===1); }
+  const v = (document.getElementById('mode').value === 'mark') ? 1 : 0;
+  if(arr[s] !== v){
+    arr[s] = v;
+    e.currentTarget.classList.toggle('busy', v===1);
+    scheduleSave();
+  }
 }
 
-function setStatus(msg){
-  const link = REPO_VIEW_URL ? ` – <a href="${REPO_VIEW_URL}" target="_blank" style="color:var(--accent)">open JSON</a>` : '';
-  document.getElementById('status').innerHTML = msg + link;
-}
+function setStatus(msg){ document.getElementById('status').textContent = msg; }
 
-// ============== DAY VIEW (see team for a day) =
+// Day view
 function rangesFromArray(arr){
-  const ranges=[]; let i=0; while(i<arr.length){
-    if(arr[i]===1){ const s=i; while(i<arr.length && arr[i]===1) i++; const e=i; ranges.push(`${minutesToLabel(START_MINUTES+s*SLOT_MINUTES)} – ${minutesToLabel(START_MINUTES+e*SLOT_MINUTES)}`); }
+  const ranges=[]; let i=0;
+  while(i<arr.length){
+    if(arr[i]===1){ const s=i; while(i<arr.length && arr[i]===1) i++; const e=i;
+      ranges.push(`${minutesToLabel(START_MINUTES+s*SLOT_MINUTES)} – ${minutesToLabel(START_MINUTES+e*SLOT_MINUTES)}`); }
     else i++;
-  } return ranges;
+  }
+  return ranges;
 }
 function renderDayView(){
   const dayIdx = Number(document.getElementById('viewDay').value||0);
-  const out = DEFAULT_USERS.map(u=>{ ensureUser(u); const arr = state.users[u][`d${dayIdx}`]||[]; const r=rangesFromArray(arr); return `<div style="margin:6px 0"><strong>${u}</strong>: ${r.length? r.join(', ') : 'Free all day'}</div>`; }).join('');
-  document.getElementById('daySummary').innerHTML = out || 'No data yet.';
-}
-function switchUIMode(){
-  const mode = document.getElementById('uiMode').value;
-  const editControls = document.getElementById('editControls');
-  const viewControls = document.getElementById('viewControls');
-  const dayPanel = document.getElementById('dayViewPanel');
-  if(mode==='view'){ editControls.style.display='none'; viewControls.style.display='flex'; dayPanel.style.display='block'; renderDayView(); }
-  else { editControls.style.display='flex'; viewControls.style.display='none'; dayPanel.style.display='none'; }
+  const html = DEFAULT_USERS.map(u=>{
+    ensureUser(u);
+    const ranges = rangesFromArray(state.users[u][`d${dayIdx}`] || []);
+    return `<div style="margin:6px 0"><strong>${u}</strong>: ${ranges.length? ranges.join(', ') : 'Free all day'}</div>`;
+  }).join('');
+  document.getElementById('daySummary').innerHTML = html || 'No data yet.';
 }
 
-// ============== LOAD / SAVE (GitHub) =========
+// ===== Load/Save (autosave) =====
 async function loadFromGitHub(){
-  setStatus('Loading…');
   const res = await fetch(API_URL, { method:'GET' });
   if(!res.ok){ setStatus('Failed to load – configure API'); return; }
   state = await res.json(); if(!state.users) state.users={}; if(!state.log) state.log=[];
   ensureDefaults();
   const user = document.getElementById('user').value.trim() || DEFAULT_USERS[0];
   document.getElementById('user').value = user;
-  renderForUser(user); renderLog(); renderDayView();
+  renderForUser(user);
+  renderLog();
+  renderDayView();
   setStatus('Loaded latest from GitHub.');
 }
 
+function renderForUser(name){
+  ensureUser(name);
+  document.querySelectorAll('.cell-btn').forEach(btn=>btn.classList.remove('busy'));
+  for(let d=0; d<7; d++){
+    const arr = state.users[name][`d${d}`] || [];
+    for(let i=0;i<SLOTS;i++){
+      if(arr[i]===1){
+        const btn = document.querySelector(`.cell-btn[data-day="${d}"][data-slot="${i}"]`);
+        if(btn) btn.classList.add('busy');
+      }
+    }
+  }
+}
+
 function collectUserChanges(){
-  const user = document.getElementById('user').value.trim(); if(!user){ alert('Enter/select your name first'); return null; }
+  const user = document.getElementById('user').value.trim(); if(!user) return null;
   ensureUser(user);
-  const updated = Object.fromEntries(Array.from({length:7},(_,d)=>[`d${d}`, Array.from({length:SLOTS},(__,i)=> document.querySelector(`.cell-btn[data-day="${d}"][data-slot="${i}"]`).classList.contains('busy')?1:0 )]));
+  const updated = Object.fromEntries(Array.from({length:7},(_,d)=>[
+    `d${d}`, Array.from({length:SLOTS},(__,i)=> document.querySelector(`.cell-btn[data-day="${d}"][data-slot="${i}"]`).classList.contains('busy')?1:0 )
+  ]));
   const prev = state.users[user] || {};
   const diffs = [];
   for(let d=0; d<7; d++){ const key=`d${d}`; for(let i=0;i<SLOTS;i++){ if((prev[key]?.[i]||0)!==updated[key][i]) diffs.push({day:d,slot:i,value:updated[key][i]}); }}
   state.users[user] = updated;
-  const entry = { ts:new Date().toISOString(), user, reason: document.getElementById('reason').value, changes: diffs.slice(0,600) };
-  state.log.unshift(entry); state.log = state.log.slice(0,5000);
-  return { entry };
+  state.log.unshift({ ts:new Date().toISOString(), user, reason:'update', changes: diffs.slice(0,600) });
+  state.log = state.log.slice(0,5000);
+  return true;
 }
 
 async function saveToGitHub(){
-  const result = collectUserChanges(); if(!result) return;
-  setStatus('Saving…');
-  const res = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(state) });
-  if(!res.ok){ const t = await res.text(); setStatus('Save failed – check API. '+t); return; }
-  const out = await res.json(); setStatus('Saved to GitHub. Commit: ' + (out.commit || 'ok')); renderLog();
+  // merge latest → avoid overwriting others
+  const latestRes = await fetch(API_URL, { method:'GET' });
+  const latest = latestRes.ok ? await latestRes.json() : { users:{}, log:[] };
+  const merged = { users: { ...latest.users, ...state.users }, log: state.log };
+  const res = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(merged) });
+  if(!res.ok){ setStatus('Save failed – check API'); return; }
+  const out = await res.json();
+  setStatus('Autosaved. Commit: ' + (out.commit || 'ok'));
 }
 
-function renderLog(){
-  const logEl = document.getElementById('log');
-  if(!state.log?.length){ logEl.innerHTML = '<div>No changes yet.</div>'; return; }
-  logEl.innerHTML = state.log.slice(0,50).map(row=>{
-    const when = new Date(row.ts).toLocaleString(); const n = row.changes?.length || 0;
-    return `<div style="padding:6px 0; border-bottom:1px dashed #22242b">`+
-           `<strong>${row.user||'Unknown'}</strong> <span style="font-size:11px; padding:2px 8px; border:1px solid #2a2e35; border-radius:999px; background:#0f1116; margin-left:6px">${row.reason||'update'}</span> `+
-           `edited <strong>${n}</strong> slot${n===1?'':'s'} <span style="color:var(--muted)">(${when})</span>`+
-           `</div>`;
-  }).join('');
+let saveTimer=null;
+function scheduleSave(){
+  if(!collectUserChanges()) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveToGitHub, 900); // debounce autosave
 }
 
-function clearUserGrid(){
-  const user = document.getElementById('user').value.trim(); if(!user) return alert('Enter/select your name first'); ensureUser(user);
-  document.querySelectorAll('.cell-btn').forEach(btn=>btn.classList.remove('busy'));
-}
-
-// ============== HOOK UP ======================
+// ===== Boot =====
 buildGrid(); ensureDefaults();
-
-document.getElementById('user').addEventListener('change', e=>{ const name=e.target.value.trim(); if(!name) return; ensureUser(name); renderForUser(name); });
-
-document.getElementById('uiMode').addEventListener('change', switchUIMode);
+document.getElementById('tabFill').addEventListener('click', ()=> switchTab('fill'));
+document.getElementById('tabSee').addEventListener('click',  ()=> switchTab('see'));
+document.getElementById('user').addEventListener('change', (e)=>{ const n=e.target.value.trim(); if(!n) return; ensureUser(n); renderForUser(n); });
 
 document.getElementById('viewDay').addEventListener('change', renderDayView);
 
-document.getElementById('refreshView').addEventListener('click', renderDayView);
-
-document.getElementById('load').addEventListener('click', loadFromGitHub);
-
-document.getElementById('save').addEventListener('click', saveToGitHub);
-
-document.getElementById('resetUser').addEventListener('click', clearUserGrid);
-
-setStatus('Ready. Click “Load latest from GitHub” to fetch the shared grid.');
+(async function bootstrap(){
+  await loadFromGitHub();                 // initial load
+  setInterval(loadFromGitHub, 20000);     // live auto-refresh
+  setStatus('Ready. Autosave is ON.');
+})();
 </script>
-
-<!-- ============================================
-BACKEND NOTES – Serverless API that commits to GitHub
-Place this file at /api/availability.js when deploying on Vercel.
-============================================ -->
-<!--
-export default async function handler(req, res) {
-  const { GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO, GITHUB_FILE_PATH = 'availability.json', GITHUB_BRANCH = 'main' } = process.env;
-  if (!GITHUB_TOKEN || !GITHUB_OWNER || !GITHUB_REPO) return res.status(500).send('Missing GitHub env vars');
-  const headers = { 'Authorization': `Bearer ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github+json' };
-  const base = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${encodeURIComponent(GITHUB_FILE_PATH)}`;
-
-  if (req.method === 'GET') {
-    const r = await fetch(`${base}?ref=${GITHUB_BRANCH}`, { headers });
-    if (r.status === 404) return res.json({ users: {}, log: [] });
-    if (!r.ok) return res.status(r.status).send(await r.text());
-    const data = await r.json();
-    const blob = Buffer.from(data.content, 'base64').toString('utf8');
-    try { return res.json(JSON.parse(blob)); } catch { return res.json({ users:{}, log:[] }); }
-  }
-
-  if (req.method === 'POST') {
-    const body = req.body || {}; const pretty = JSON.stringify(body, null, 2);
-    let sha = undefined;
-    const head = await fetch(`${base}?ref=${GITHUB_BRANCH}`, { headers });
-    if (head.ok) { const j = await head.json(); sha = j.sha; }
-
-    const put = await fetch(base, {
-      method:'PUT', headers:{ ...headers, 'Content-Type':'application/json' },
-      body: JSON.stringify({
-        message: `availability: update by ${body?.log?.[0]?.user || 'unknown'}`,
-        content: Buffer.from(pretty).toString('base64'),
-        sha, branch: GITHUB_BRANCH
-      })
-    });
-    if (!put.ok) return res.status(put.status).send(await put.text());
-    const out = await put.json(); return res.json({ ok:true, commit: out.commit?.sha?.slice(0,7) });
-  }
-
-  res.setHeader('Allow','GET,POST'); return res.status(405).end('Method Not Allowed');
-}
-
-SETUP
------
-1) Create repo (e.g., team-availability) and add availability.json with {"users":{},"log":[]}
-2) Deploy HTML page (Vercel/Netlify/etc). On Vercel, add the function above as /api/availability.js
-3) In project settings, add env vars:
-   GITHUB_TOKEN (fine-grained PAT, Contents: Read/Write for that repo)
-   GITHUB_OWNER (your username/org)
-   GITHUB_REPO  (the repo name)
-   optional: GITHUB_FILE_PATH, GITHUB_BRANCH
-4) Open site → Load → edit → Save. Everyone shares the same URL. -->
-
 </body>
 </html>
