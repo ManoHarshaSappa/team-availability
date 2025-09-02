@@ -13,15 +13,15 @@
   h1{margin:0 0 12px 0;font-size:22px}
   .card{background:var(--card);border:1px solid #1a1c22;border-radius:14px;box-shadow:0 1px 0 #000,0 30px 80px rgba(0,0,0,.35)}
   .toolbar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:10px;padding:12px;border-bottom:1px solid #1a1c22}
+  .bar{display:flex;gap:10px;align-items:center}
   .group{display:flex;gap:8px;align-items:center}
   label{font-size:12px;color:var(--muted)}
-  input[type=text],select,button{background:#0f1116;color:var(--ink);border:1px solid #2a2e35;border-radius:10px;padding:8px 10px}
-  input[type=text]:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(106,167,255,.12)}
-  .tabs button{background:#10233c;border-color:#153258}
-  .ghost{background:transparent;border-color:#2a2e35}
-  .warn{background:#3a2f0c;border-color:#5e4a13}
+  select,button{background:#0f1116;color:var(--ink);border:1px solid #2a2e35;border-radius:10px;padding:8px 10px}
+  select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(106,167,255,.12)}
+  .tab{background:#10233c;border-color:#153258}
   .danger{background:#3a1214;border-color:#5e1b20}
   .ok{background:#103623;border-color:#174f32}
+  .ghost{background:transparent;border-color:#2a2e35}
   .legend{display:flex;gap:16px;font-size:12px;padding:8px 12px;color:var(--muted)}
     .chip{display:inline-flex;gap:8px;align-items:center}
     .chip .dot{width:16px;height:16px;border:1px solid var(--grid);border-radius:4px;position:relative}
@@ -46,6 +46,8 @@
   .matrix .timeCol{position:sticky;left:0;background:#0f1116;color:var(--muted)}
   .x{color:var(--danger);font-weight:800;text-align:center}
 
+  [hidden]{display:none !important}
+
   @media (max-width:720px){
     .col-head{font-size:12px;padding:6px 4px;top:58px}
     .time{font-size:12px}
@@ -59,42 +61,42 @@
 
   <div class="card">
     <div class="toolbar">
-      <div class="group tabs">
-        <button id="tab-fill">Fill availability</button>
-        <button id="tab-see">See by day</button>
+      <div class="bar">
+        <button id="tabFill" class="tab">Fill availability</button>
+        <button id="tabSee"  class="tab">See by day</button>
       </div>
 
-      <!-- Fill controls -->
-      <div id="fillControls" class="group">
-        <label for="user">Your name</label>
-        <select id="user"></select>
-
-        <label for="edit">Edit</label>
-        <select id="edit">
-          <option value="mark">Mark busy</option>
-          <option value="clear">Mark free</option>
-        </select>
-
-        <button id="clearDay"  class="ghost">Clear selected day</button>
-        <button id="clearWeek" class="warn">Clear week</button>
-        <button id="clearAll"  class="danger">Clear ALL</button>
-
-        <button id="sync" class="ok">Sync to GitHub</button>
+      <!-- FILL BAR (only Name, Edit, Clear all) -->
+      <div id="barFill" class="bar">
+        <div class="group">
+          <label for="user">Name</label>
+          <select id="user"></select>
+        </div>
+        <div class="group">
+          <label for="edit">Edit</label>
+          <select id="edit">
+            <option value="mark">Mark busy</option>
+            <option value="clear">Mark free</option>
+          </select>
+        </div>
+        <button id="clearAll" class="danger">Clear all (this browser)</button>
+        <button id="sync" class="ok" hidden>Sync to GitHub</button>
       </div>
 
-      <!-- See-by-day controls -->
-      <div id="seeControls" class="group" style="display:none">
-        <label for="viewDay">Day</label>
-        <select id="viewDay"></select>
-        <span id="dayLabel" style="color:var(--muted);font-size:12px"></span>
-        <button id="copySummary" class="ghost">Copy summary</button>
+      <!-- SEE-BY-DAY BAR (only Day) -->
+      <div id="barSee" class="bar" hidden>
+        <div class="group">
+          <label for="viewDay">Day</label>
+          <select id="viewDay"></select>
+        </div>
+        <span id="dayLabel" class="ghost" style="padding:8px 10px;border-radius:10px;color:var(--muted);border:1px solid #2a2e35">Matrix view</span>
       </div>
     </div>
 
     <div class="legend">
       <span class="chip"><span class="dot"></span> Free (leave empty)</span>
       <span class="chip"><span class="dot busy"></span> Busy (red ✕)</span>
-      <span>Fast local save • Click <b>Sync to GitHub</b> to push changes</span>
+      <span>Local save is instant. Click <b>Sync to GitHub</b> if you unhide it.</span>
     </div>
 
     <div class="grid-wrap">
@@ -102,75 +104,51 @@
     </div>
 
     <div id="dayPanel">
-      <div class="status-inline">Matrix view for <strong id="matrixDayName"></strong></div>
+      <div class="status-inline">Matrix for <strong id="matrixDayName"></strong></div>
       <div id="dayMatrix"></div>
     </div>
 
     <div class="footer">
-      <span id="status">Ready. Local save is ON.</span>
+      <span id="status">Ready.</span>
       <span>Tip: choose your name, click cells.</span>
     </div>
   </div>
-
-  <details style="margin-top:12px">
-    <summary style="cursor:pointer;color:var(--muted)">Change log (last 50)</summary>
-    <div id="log" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;padding-top:8px;max-height:260px;overflow:auto"></div>
-  </details>
 </div>
 
 <script>
-/* =================== CONFIG =================== */
-// If HTML and API are the SAME Vercel project, keep relative:
-const API_URL = "/api/availability";
-// If hosted elsewhere, use full Vercel URL:
-// const API_URL = "https://<your-vercel-app>.vercel.app/api/availability";
-
+/* ============== CONFIG ============== */
+const API_URL = "/api/availability"; // same project on Vercel
 const DEFAULT_USERS = ["Harsha","Sarmad","Sneha Deshpande","Vinay","Bhavishya"];
 const DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-const START_MIN = 0, END_MIN = 24*60, STEP = 30;
-const SLOTS = Math.floor((END_MIN-START_MIN)/STEP);
-const LS_KEY = "teamAvailabilityData:v1";
+const START_MIN=0, END_MIN=24*60, STEP=30, SLOTS=Math.floor((END_MIN-START_MIN)/STEP);
+const LS_KEY="teamAvailabilityData:v2";
 
-/* =================== HELPERS =================== */
-function minutesToLabel(m){
-  const hh=Math.floor(m/60)%24, mm=m%60, ampm=hh>=12?"PM":"AM", h12=((hh+11)%12)+1;
-  return `${h12}:${mm.toString().padStart(2,"0")} ${ampm}`;
-}
-function setStatus(msg){ document.getElementById("status").textContent = msg; }
+/* ============== HELPERS ============== */
+const $ = id => document.getElementById(id);
+function minutesToLabel(m){ const hh=Math.floor(m/60)%24, mm=m%60, am=hh>=12?"PM":"AM", h=((hh+11)%12)+1; return `${h}:${mm.toString().padStart(2,"0")} ${am}`; }
+function setStatus(t){ $("status").textContent=t; }
 
-/* =================== STATE =================== */
-let state = { users:{}, log:[] };
-
-function blankWeek(){
-  return Object.fromEntries(Array.from({length:7},(_,d)=>[`d${d}`, Array.from({length:SLOTS},()=>0)]));
-}
-function ensureUser(name){
-  if(!state.users[name]) state.users[name] = blankWeek();
-}
+/* ============== STATE ============== */
+let state={users:{},log:[]};
+const blankWeek = () => Object.fromEntries(Array.from({length:7},(_,d)=>[`d${d}`,Array.from({length:SLOTS},()=>0)]) );
+function ensureUser(name){ if(!state.users[name]) state.users[name]=blankWeek(); }
 function ensureDefaults(){
   DEFAULT_USERS.forEach(ensureUser);
-  const sel=document.getElementById("user");
-  if(sel.options.length===0){
-    DEFAULT_USERS.forEach(u=>{ const o=document.createElement("option"); o.value=u; o.textContent=u; sel.appendChild(o); });
-  }
-  const daySel=document.getElementById("viewDay");
-  if(daySel.options.length===0){
-    DAYS.forEach((n,i)=>{ const o=document.createElement("option"); o.value=i; o.textContent=n; daySel.appendChild(o); });
-  }
+  // name dropdown
+  const u=$("user"); if(!u.options.length){ DEFAULT_USERS.forEach(n=>{ const o=document.createElement("option"); o.value=n; o.textContent=n; u.appendChild(o); }); }
+  // day dropdown
+  const d=$("viewDay"); if(!d.options.length){ DAYS.forEach((n,i)=>{ const o=document.createElement("option"); o.value=i; o.textContent=n; d.appendChild(o); }); }
 }
 
-/* =================== GRID =================== */
-const grid=document.getElementById("grid");
+/* ============== GRID ============== */
+const grid=$("grid");
 function colHead(t){ const el=document.createElement("div"); el.className="col-head"; el.textContent=t; return el; }
 function timeCell(t){ const el=document.createElement("div"); el.className="time"; el.textContent=t; return el; }
-
 function buildGrid(){
-  grid.innerHTML="";
-  grid.appendChild(colHead("Time"));
-  for(const d of DAYS) grid.appendChild(colHead(d));
+  grid.innerHTML=""; grid.appendChild(colHead("Time")); DAYS.forEach(d=>grid.appendChild(colHead(d)));
   for(let i=0;i<SLOTS;i++){
     grid.appendChild(timeCell(minutesToLabel(START_MIN+i*STEP)));
-    for(let d=0;d<7;d++){
+    for(let d=0; d<7; d++){
       const b=document.createElement("button");
       b.className="cell"; b.dataset.day=d; b.dataset.slot=i;
       b.addEventListener("click", onCellClick);
@@ -178,158 +156,91 @@ function buildGrid(){
     }
   }
 }
-
 function renderForUser(name){
   ensureUser(name);
   document.querySelectorAll(".cell").forEach(b=>b.classList.remove("busy"));
-  for(let d=0;d<7;d++){
-    const a=state.users[name][`d${d}`]||[];
-    for(let i=0;i<SLOTS;i++){
-      if(a[i]===1){
-        const b=document.querySelector(`.cell[data-day="${d}"][data-slot="${i}"]`);
-        if(b) b.classList.add("busy");
-      }
+  for(let d=0; d<7; d++){
+    const arr=state.users[name][`d${d}`]||[];
+    for(let i=0;i<SLOTS;i++) if(arr[i]===1){
+      const b=document.querySelector(`.cell[data-day="${d}"][data-slot="${i}"]`);
+      if(b) b.classList.add("busy");
     }
   }
 }
-
 function onCellClick(e){
-  if(currentTab!=="fill") return; // locked in see view
-  const name=document.getElementById("user").value;
-  ensureUser(name);
+  if(currentTab!=="fill") return; // disabled in See view
+  const name=$("user").value; ensureUser(name);
   const d=+e.currentTarget.dataset.day, i=+e.currentTarget.dataset.slot;
-  const mode=document.getElementById("edit").value;
-  const val=(mode==="mark")?1:0;
-  const arr=state.users[name][`d${d}`];
-  if(arr[i]!==val){
-    arr[i]=val;
+  const val = $("edit").value==="mark" ? 1 : 0;
+  if(state.users[name][`d${d}`][i]!==val){
+    state.users[name][`d${d}`][i]=val;
     e.currentTarget.classList.toggle("busy", val===1);
-    saveLocal(); // fast local save
-    logChange(name, d, i, val);
+    saveLocal();
+    logChange(name,d,i,val);
   }
 }
 
-/* =================== LOCAL STORAGE =================== */
+/* ============== LOCAL + GITHUB ============== */
 function saveLocal(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
-function loadLocal(){
-  try{
-    const raw=localStorage.getItem(LS_KEY);
-    if(raw){ const j=JSON.parse(raw); state.users=j.users||{}; state.log=j.log||[]; }
-  }catch{}
-}
+function loadLocal(){ try{ const raw=localStorage.getItem(LS_KEY); if(raw){ const j=JSON.parse(raw); state.users=j.users||{}; state.log=j.log||[]; } }catch{} }
+function logChange(user,day,slot,value){ state.log.unshift({ts:new Date().toISOString(),user,reason:"update",changes:[{day,slot,value}]}); state.log=state.log.slice(0,5000); }
 
-/* =================== GITHUB SYNC =================== */
-function logChange(user, day, slot, value){
-  state.log.unshift({ ts:new Date().toISOString(), user, reason:"update", changes:[{day,slot,value}] });
-  state.log = state.log.slice(0,5000);
-  renderLog();
-}
 async function syncToGitHub(){
   setStatus("Syncing to GitHub…");
   try{
-    // merge with latest to avoid overwriting others
-    const latest = await fetch(API_URL).then(r=>r.ok?r.json():{users:{},log:[]});
-    const merged = { users: { ...latest.users, ...state.users }, log: state.log };
-    const r = await fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(merged)});
-    if(!r.ok){ const t=await r.text(); setStatus("Sync failed: "+t); return; }
-    const out = await r.json();
-    setStatus("Synced to GitHub. Commit: "+(out.commit||"ok"));
-  }catch(e){ setStatus("Sync failed – network/API"); }
+    const latest=await fetch(API_URL).then(r=>r.ok?r.json():{users:{},log:[]});
+    const merged={users:{...latest.users, ...state.users}, log: state.log};
+    const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(merged)});
+    if(!r.ok){ setStatus("Sync failed"); return; }
+    const out=await r.json(); setStatus("Synced. Commit: "+(out.commit||"ok"));
+  }catch{ setStatus("Sync failed – network/API"); }
 }
 
-/* =================== SEE-BY-DAY MATRIX =================== */
+/* ============== SEE-BY-DAY MATRIX ============== */
 function renderDayMatrix(){
-  const dayIdx=+document.getElementById("viewDay").value||0;
-  document.getElementById("matrixDayName").textContent = DAYS[dayIdx];
-  document.getElementById("dayLabel").textContent = `• ${DAYS[dayIdx]}`;
-  const container=document.getElementById("dayMatrix");
-  const cols=["Time",...DEFAULT_USERS];
+  const dayIdx=+$("viewDay").value||0;
+  $("matrixDayName").textContent=DAYS[dayIdx];
+  $("dayLabel").textContent=`• ${DAYS[dayIdx]}`;
+  const container=$("dayMatrix");
+  const cols=["Time", ...DEFAULT_USERS];
   let html=`<table class="matrix"><thead><tr>${cols.map(c=>`<th>${c}</th>`).join("")}</tr></thead><tbody>`;
   for(let i=0;i<SLOTS;i++){
-    const time=minutesToLabel(START_MIN+i*STEP);
-    const cells=DEFAULT_USERS.map(u=>{
-      const a=(state.users[u]?.[`d${dayIdx}`]||[]);
-      return `<td class="${a[i]===1?'x':''}">${a[i]===1?'✕':''}</td>`;
-    }).join("");
-    html+=`<tr><td class="timeCol">${time}</td>${cells}</tr>`;
+    const t=minutesToLabel(START_MIN+i*STEP);
+    const cells=DEFAULT_USERS.map(u=>{ const a=(state.users[u]?.[`d${dayIdx}`]||[]); return `<td class="${a[i]===1?'x':''}">${a[i]===1?'✕':''}</td>`; }).join("");
+    html+=`<tr><td class="timeCol">${t}</td>${cells}</tr>`;
   }
   html+=`</tbody></table>`;
   container.innerHTML=html;
 }
 
-async function copyDaySummary(){
-  const d=+document.getElementById("viewDay").value||0;
-  const lines = DEFAULT_USERS.map(u=>{
-    const arr=state.users[u]?.[`d${d}`]||[];
-    const blocks=[]; for(let i=0;i<arr.length;){ if(arr[i]===1){ const s=i; while(i<arr.length&&arr[i]===1)i++; const e=i; blocks.push(`${minutesToLabel(START_MIN+s*STEP)}–${minutesToLabel(START_MIN+e*STEP)}`);} else i++; }
-    return `${u}: ${blocks.length?blocks.join(", "):"Free all day"}`;
-  });
-  const txt = `Team availability for ${DAYS[d]}:\n` + lines.join("\n");
-  await navigator.clipboard.writeText(txt);
-  setStatus("Summary copied to clipboard.");
-}
+/* ============== CLEAR ALL (this browser) ============== */
+$("clearAll").addEventListener("click", ()=>{
+  if(!confirm("Clear all data in THIS browser? (Team data on GitHub is unchanged until you sync)")) return;
+  state={users:{},log:[]}; ensureDefaults(); renderForUser($("user").value); saveLocal(); setStatus("Cleared (local).");
+});
 
-/* =================== LOG =================== */
-function renderLog(){
-  const el=document.getElementById("log"); if(!state.log?.length){ el.innerHTML="<div>No changes yet.</div>"; return; }
-  el.innerHTML=state.log.slice(0,50).map(row=>{
-    const when=new Date(row.ts).toLocaleString(); const n=row.changes?.length||0;
-    return `<div style="padding:6px 0;border-bottom:1px dashed #22242b">
-      <strong>${row.user||"Unknown"}</strong>
-      <span style="font-size:11px;padding:2px 8px;border:1px solid #2a2e35;border-radius:999px;background:#0f1116;margin-left:6px">${row.reason||"update"}</span>
-      edited <strong>${n}</strong> slot${n===1?"":"s"} <span style="color:var(--muted)">(${when})</span>
-    </div>`;
-  }).join("");
-}
-
-/* =================== CLEAR ACTIONS =================== */
-function clearSelectedDayForUser(name, dayIdx){ ensureUser(name); state.users[name][`d${dayIdx}`]=Array.from({length:SLOTS},()=>0); }
-function clearWholeWeekForUser(name){ ensureUser(name); for(let d=0;d<7;d++) state.users[name][`d${d}`]=Array.from({length:SLOTS},()=>0); }
-function clearAllUsers(){ state.users={}; ensureDefaults(); }
-
-/* =================== TABS & HOOKS =================== */
+/* ============== TABS ============== */
 let currentTab="fill";
-function switchTo(tab){
+function show(tab){
   currentTab=tab;
-  document.getElementById("fillControls").style.display = tab==="fill" ? "flex" : "none";
-  document.getElementById("seeControls").style.display  = tab==="see"  ? "flex" : "none";
-  document.getElementById("dayPanel").style.display     = tab==="see"  ? "block": "none";
-  if(tab==="see") renderDayMatrix();
+  $("barFill").hidden = tab!=="fill";
+  $("barSee").hidden  = tab!=="see";
+  $("dayPanel").style.display = tab==="see" ? "block" : "none";
 }
+$("tabFill").addEventListener("click", ()=>show("fill"));
+$("tabSee").addEventListener("click",  ()=>{ show("see"); renderDayMatrix(); });
 
-document.getElementById("tab-fill").addEventListener("click", ()=> switchTo("fill"));
-document.getElementById("tab-see").addEventListener("click",  ()=> switchTo("see"));
+/* ============== HOOKS ============== */
+$("user").addEventListener("change", e=>{ ensureUser(e.target.value); renderForUser(e.target.value); });
+$("viewDay").addEventListener("change", renderDayMatrix);
+$("sync").addEventListener("click", syncToGitHub);
 
-document.getElementById("user").addEventListener("change", e=>{
-  const name=e.target.value; ensureUser(name); renderForUser(name);
-});
-document.getElementById("viewDay").addEventListener("change", renderDayMatrix);
-document.getElementById("copySummary").addEventListener("click", copyDaySummary);
-
-document.getElementById("clearDay").addEventListener("click", ()=>{
-  const name=document.getElementById("user").value; const d=+document.getElementById("viewDay").value||0;
-  clearSelectedDayForUser(name,d); renderForUser(name); if(currentTab==="see") renderDayMatrix(); saveLocal(); logChange(name,d,"*",0);
-});
-document.getElementById("clearWeek").addEventListener("click", ()=>{
-  const name=document.getElementById("user").value;
-  clearWholeWeekForUser(name); renderForUser(name); if(currentTab==="see") renderDayMatrix(); saveLocal(); logChange(name,"*","*",0);
-});
-document.getElementById("clearAll").addEventListener("click", ()=>{
-  if(!confirm("Clear ALL users? This only resets your browser copy. Use Sync to push.")) return;
-  clearAllUsers(); renderForUser(document.getElementById("user").value); if(currentTab==="see") renderDayMatrix(); saveLocal(); setStatus("Cleared all (local).");
-});
-
-document.getElementById("sync").addEventListener("click", syncToGitHub);
-
-/* =================== BOOT =================== */
-buildGrid();
-loadLocal();
-ensureDefaults();
-document.getElementById("user").value = DEFAULT_USERS[0];
+// boot
+buildGrid(); loadLocal(); ensureDefaults();
+$("user").value = DEFAULT_USERS[0];
 renderForUser(DEFAULT_USERS[0]);
-document.getElementById("viewDay").value = "0"; // Sunday default
-renderLog();
-setStatus("Ready. Local save is ON.");
+$("viewDay").value="0"; // Sunday default
+setStatus("Ready.");
 </script>
 </body>
 </html>
