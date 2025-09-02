@@ -3,294 +3,355 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Team Availability – Shared Grid</title>
+  <title>Team Availability</title>
   <style>
-    :root {
-      --bg: #0b0c10;
-      --card: #121318;
-      --muted: #8a8f98;
-      --ink: #e9eef6;
-      --accent: #6aa7ff;
-      --danger: #ff6b6b;
-      --grid-border: #ffffff; /* White lines to highlight cells */
+    :root{
+      --bg:#0b0c10; --card:#121318; --ink:#e9eef6; --muted:#8a8f98;
+      --accent:#6aa7ff; --danger:#ff6b6b; --grid:#fff;
     }
-    html, body { height: 100%; }
-    body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto; }
-    .container { max-width: 1120px; margin: 24px auto; padding: 0 16px; }
-    .heading { display:flex; gap:12px; align-items:center; justify-content: space-between; margin-bottom: 12px; }
-    h1 { font-size: 22px; margin: 0; letter-spacing: .2px; }
-    .card { background: var(--card); border: 1px solid #1a1c22; border-radius: 14px; box-shadow: 0 1px 0 #000, 0 30px 80px rgba(0,0,0,.35); }
-
-    /* Toolbar */
-    .toolbar { position: sticky; top: 0; z-index: 3; display:flex; flex-wrap: wrap; gap: 10px; padding: 12px; align-items: center; border-bottom: 1px solid #1a1c22; backdrop-filter: blur(6px); }
-    .group { display:flex; gap: 8px; align-items: center; }
-    label { color: var(--muted); font-size: 12px; }
-    input[type="text"], select, button { background: #0f1116; color: var(--ink); border: 1px solid #2a2e35; border-radius: 10px; padding: 8px 10px; }
-    input[type="text"]:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(106,167,255,.12); outline: none; }
-    button { cursor: pointer; border-radius: 10px; }
-    .btn-primary { background:#10233c; border-color:#153258; color:var(--ink); }
-
-    .legend { display:flex; gap: 16px; font-size: 12px; padding: 8px 12px; color: var(--muted); }
-    .chip { display:inline-flex; align-items:center; gap:8px; }
-    .chip .cell { width: 16px; height: 16px; border: 1px solid var(--grid-border); border-radius: 4px; position: relative; }
-    .chip .cell.busy::after { content: "✕"; position:absolute; inset: 0; display:grid; place-items:center; color: var(--danger); font-weight:700; font-size: 12px; }
-
-    /* Grid */
-    .grid-wrap { overflow:auto; }
-    .grid { display: grid; grid-template-columns: 88px repeat(7, 1fr); border-top: 1px solid var(--grid-border); border-left: 1px solid var(--grid-border); background:#0b0d12; }
-    .col-head, .time, .cell-btn { border-right: 1px solid var(--grid-border); border-bottom: 1px solid var(--grid-border); }
-    .col-head { position: sticky; top: 0; z-index: 2; background: #141722; text-align: center; padding: 8px 6px; font-weight: 600; letter-spacing: .2px; }
-    .time { background: #0f1116; color: var(--muted); padding: 6px 8px; font-variant-numeric: tabular-nums; position: sticky; left: 0; z-index: 1; }
-    .cell-btn { position: relative; height: 30px; background: transparent; display: block; width: 100%; border: none; }
-    .cell-btn.busy::after { content: "✕"; color: var(--danger); font-weight: 800; display:grid; place-items:center; }
-    .cell-btn:hover { background: rgba(106,167,255,.08); }
-    .cell-btn.busy:hover { background: rgba(255,107,107,.10); }
-
-    .footer { padding: 10px 12px; display:flex; flex-wrap:wrap; gap:10px; justify-content: space-between; font-size: 12px; color: var(--muted); border-top: 1px solid #1a1c22; }
-
-    /* Day View Panel */
-    #dayViewPanel { margin:12px; padding:12px; border:1px solid #1a1c22; border-radius: 12px; display:none; }
-
-    /* Mobile tweaks */
-    @media (max-width: 720px) {
-      .col-head { font-size: 12px; padding: 6px 4px; position: sticky; top: 56px; }
-      .time { font-size: 12px; }
-      .cell-btn { height: 36px; }
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto}
+    .container{max-width:1120px;margin:24px auto;padding:0 16px}
+    h1{margin:0 0 12px 0;font-size:22px}
+    .card{background:var(--card);border:1px solid #1a1c22;border-radius:14px;box-shadow:0 1px 0 #000,0 30px 80px rgba(0,0,0,.35)}
+    .toolbar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:10px;padding:12px;border-bottom:1px solid #1a1c22}
+    .group{display:flex;gap:8px;align-items:center}
+    label{font-size:12px;color:var(--muted)}
+    input[type=text],select,button{background:#0f1116;color:var(--ink);border:1px solid #2a2e35;border-radius:10px;padding:8px 10px}
+    input[type=text]:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(106,167,255,.12)}
+    .tabs button{background:#10233c;border-color:#153258}
+    .ghost{background:transparent;border-color:#2a2e35}
+    .warn{background:#3a2f0c;border-color:#5e4a13}
+    .danger{background:#3a1214;border-color:#5e1b20}
+    .legend{display:flex;gap:16px;font-size:12px;padding:8px 12px;color:var(--muted)}
+      .chip{display:inline-flex;gap:8px;align-items:center}
+      .chip .dot{width:16px;height:16px;border:1px solid var(--grid);border-radius:4px;position:relative}
+      .chip .dot.busy::after{content:"✕";position:absolute;inset:0;display:grid;place-items:center;color:var(--danger);font-weight:700;font-size:12px}
+    .grid-wrap{overflow:auto}
+    .grid{display:grid;grid-template-columns:88px repeat(7,1fr);background:#0b0d12;border-top:1px solid var(--grid);border-left:1px solid var(--grid)}
+    .col-head,.time,.cell{border-right:1px solid var(--grid);border-bottom:1px solid var(--grid)}
+    .col-head{position:sticky;top:0;z-index:2;background:#141722;text-align:center;padding:8px 6px;font-weight:600}
+    .time{background:#0f1116;color:var(--muted);padding:6px 8px;position:sticky;left:0;z-index:1;font-variant-numeric:tabular-nums}
+    .cell{height:30px;background:transparent;border:none}
+    .cell.busy::after{content:"✕";color:var(--danger);font-weight:800;display:grid;place-items:center}
+    .cell:hover{background:rgba(106,167,255,.08)}
+    .cell.busy:hover{background:rgba(255,107,107,.10)}
+    .footer{padding:10px 12px;display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:12px;border-top:1px solid #1a1c22}
+    #dayPanel{display:none;padding:12px;border-top:1px dashed #2a2e35}
+    #dayTable{border-collapse:collapse;width:100%;margin-top:8px}
+    #dayTable th,#dayTable td{border:1px solid #2a2e35;padding:8px;text-align:left}
+    #dayTable th{background:#141722}
+    .status-inline{font-size:12px;color:var(--muted)}
+    @media (max-width:720px){
+      .col-head{font-size:12px;padding:6px 4px;top:58px}
+      .time{font-size:12px}
+      .cell{height:36px}
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="heading"><h1>Team Availability</h1></div>
+<div class="container">
+  <h1>Team Availability</h1>
 
-    <div class="card" id="board">
-      <div class="toolbar">
-        <div class="group">
-          <button id="tabFill" class="btn-primary">Fill availability</button>
-          <button id="tabSee" class="btn-primary">See by day</button>
-        </div>
-
-        <div class="group" id="fillControls">
-          <label for="user">Your name</label>
-          <input id="user" type="text" placeholder="e.g., Harsha" list="users-list" />
-          <datalist id="users-list"></datalist>
-
-          <label for="mode">Edit</label>
-          <select id="mode">
-            <option value="mark">Mark Busy</option>
-            <option value="clear">Clear</option>
-          </select>
-        </div>
-
-        <div class="group" id="seeControls" style="display:none">
-          <label for="viewDay">Day</label>
-          <select id="viewDay"></select>
-          <span class="status">Live view (auto-refresh)</span>
-        </div>
+  <div class="card">
+    <div class="toolbar">
+      <div class="group tabs">
+        <button id="tab-fill">Fill availability</button>
+        <button id="tab-see">See by day</button>
       </div>
 
-      <div class="legend">
-        <span class="chip"><span class="cell"></span> Free (leave empty)</span>
-        <span class="chip"><span class="cell busy"></span> Busy (red ✕)</span>
-        <span>Autosaves to GitHub after you click cells</span>
+      <div id="fillControls" class="group">
+        <label for="user">Your name</label>
+        <input id="user" type="text" placeholder="e.g., Harsha" list="users-list" />
+        <datalist id="users-list"></datalist>
+
+        <label for="edit">Edit</label>
+        <select id="edit">
+          <option value="mark">Mark busy</option>
+          <option value="clear">Clear</option>
+        </select>
+
+        <button id="clearDay" class="ghost">Clear selected day</button>
+        <button id="clearWeek" class="warn">Clear entire week</button>
       </div>
 
-      <div class="grid-wrap">
-        <div class="grid" id="grid"><!-- built by JS --></div>
-      </div>
-
-      <div id="dayViewPanel" class="card">
-        <h3 style="margin:0 0 8px 0; font-size:16px">Day view</h3>
-        <div id="daySummary" class="status"></div>
-      </div>
-
-      <div class="footer">
-        <span id="status">Ready. Autosave is ON.</span>
-        <span>Tip: choose your name, click cells.</span>
+      <div id="seeControls" class="group" style="display:none">
+        <label for="viewDay">Day</label>
+        <select id="viewDay"></select>
+        <span class="status-inline">Team view (auto-refresh)</span>
+        <button id="copySummary" class="ghost">Copy summary</button>
       </div>
     </div>
 
-    <details style="margin-top:12px">
-      <summary style="cursor:pointer; color:var(--muted)">Change log (last 50)</summary>
-      <div id="log" style="font-family: ui-monospace, Menlo, Consolas, monospace; font-size:12px; padding-top:8px; max-height:260px; overflow:auto"></div>
-    </details>
+    <div class="legend">
+      <span class="chip"><span class="dot"></span> Free (leave empty)</span>
+      <span class="chip"><span class="dot busy"></span> Busy (red ✕)</span>
+      <span>Autosaves to GitHub after you click cells</span>
+    </div>
+
+    <div class="grid-wrap">
+      <div id="grid" class="grid"><!-- built by JS --></div>
+    </div>
+
+    <div id="dayPanel">
+      <div class="status-inline">Summary for <strong id="dayName"></strong></div>
+      <table id="dayTable">
+        <thead><tr><th>Person</th><th>Busy time ranges</th></tr></thead>
+        <tbody id="dayBody"></tbody>
+      </table>
+    </div>
+
+    <div class="footer">
+      <span id="status">Ready. Autosave is ON.</span>
+      <span>Tip: pick your name, click cells.</span>
+    </div>
   </div>
+
+  <details style="margin-top:12px">
+    <summary style="cursor:pointer;color:var(--muted)">Change log (last 50)</summary>
+    <div id="log" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;padding-top:8px;max-height:260px;overflow:auto"></div>
+  </details>
+</div>
 
 <script>
 // =================== CONFIG ===================
-// If HTML and API are on Vercel together, keep this:
+// If the HTML and API are on the SAME Vercel project, keep it relative:
 const API_URL = "/api/availability";
-// If HTML is on a different host, use full URL:
-// const API_URL = "https://<your-app>.vercel.app/api/availability";
+// If HTML is hosted elsewhere, set your full Vercel URL:
+// const API_URL = "https://<your-vercel-app>.vercel.app/api/availability";
 
 const DEFAULT_USERS = ["Harsha","Sarmad","Sneha Deshpande","Vinay","Bhavishya"];
 const DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-const START_MINUTES = 0, END_MINUTES = 24*60, SLOT_MINUTES = 30;
-const SLOTS = Math.floor((END_MINUTES-START_MINUTES)/SLOT_MINUTES);
+const START_MIN = 0, END_MIN = 24*60, STEP = 30;
+const SLOTS = Math.floor((END_MIN-START_MIN)/STEP);
 
+// ---------- helpers ----------
 function minutesToLabel(m){
-  const hh = Math.floor(m/60) % 24, mm = m % 60;
-  const ampm = hh>=12?"PM":"AM", h12 = ((hh+11)%12)+1;
-  return `${h12}:${mm.toString().padStart(2,'0')} ${ampm}`;
+  const hh=Math.floor(m/60)%24, mm=m%60, ampm=hh>=12?"PM":"AM", h12=((hh+11)%12)+1;
+  return `${h12}:${mm.toString().padStart(2,"0")} ${ampm}`;
 }
+function setStatus(msg){ document.getElementById("status").textContent = msg; }
 
-// ===== Build grid =====
-const gridEl = document.getElementById('grid');
-function buildGrid(){
-  gridEl.innerHTML = '';
-  gridEl.appendChild(colHead(''));
-  for(const d of DAYS){ gridEl.appendChild(colHead(d)); }
-  for(let i=0;i<SLOTS;i++){
-    gridEl.appendChild(timeCell(minutesToLabel(START_MINUTES + i*SLOT_MINUTES)));
-    for(let d=0; d<7; d++){
-      const btn = document.createElement('button');
-      btn.className = 'cell-btn';
-      btn.dataset.day = d; btn.dataset.slot = i;
-      btn.addEventListener('click', onCellClick);
-      gridEl.appendChild(btn);
-    }
-  }
-  const viewDay = document.getElementById('viewDay');
-  if(viewDay && !viewDay.options.length){
-    DAYS.forEach((name, idx)=>{ const o=document.createElement('option'); o.value=String(idx); o.textContent=name; viewDay.appendChild(o); });
-  }
-}
-function colHead(t){ const el=document.createElement('div'); el.className='col-head'; el.textContent=t; return el; }
-function timeCell(t){ const el=document.createElement('div'); el.className='time'; el.textContent=t; return el; }
-
-// ===== State =====
+// ---------- state ----------
 let state = { users:{}, log:[] };
 function ensureUser(name){
   if(!state.users[name]){
-    state.users[name] = Object.fromEntries(Array.from({length:7}, (_,d)=>[`d${d}`, Array.from({length:SLOTS},()=>0)]));
+    state.users[name] = Object.fromEntries(Array.from({length:7},(_,d)=>[`d${d}`, Array.from({length:SLOTS},()=>0)]));
   }
 }
 function ensureDefaults(){
   DEFAULT_USERS.forEach(ensureUser);
-  const dl = document.getElementById('users-list');
-  if(dl && !dl.children.length){ DEFAULT_USERS.forEach(u=>{ const o=document.createElement('option'); o.value=u; dl.appendChild(o); }); }
+  const dl=document.getElementById("users-list");
+  if(dl && !dl.children.length){ DEFAULT_USERS.forEach(u=>{ const o=document.createElement("option"); o.value=u; dl.appendChild(o); }); }
 }
 
-// ===== UI / Interaction =====
-let activeTab = 'fill';
-function switchTab(tab){
-  activeTab = tab;
-  document.getElementById('fillControls').style.display = tab==='fill' ? 'flex' : 'none';
-  document.getElementById('seeControls').style.display  = tab==='see'  ? 'flex' : 'none';
-  document.getElementById('dayViewPanel').style.display = tab==='see'  ? 'block': 'none';
-  if(tab==='see') renderDayView();
-}
-
-function onCellClick(e){
-  if(activeTab!=='fill') return;
-  const user = document.getElementById('user').value.trim();
-  if(!user) return alert('Enter/select your name first');
-  ensureUser(user);
-  const d = +e.currentTarget.dataset.day, s = +e.currentTarget.dataset.slot;
-  const arr = state.users[user][`d${d}`];
-  const v = (document.getElementById('mode').value === 'mark') ? 1 : 0;
-  if(arr[s] !== v){
-    arr[s] = v;
-    e.currentTarget.classList.toggle('busy', v===1);
-    scheduleSave();
+// ---------- grid ----------
+const grid = document.getElementById("grid");
+function colHead(t){ const el=document.createElement("div"); el.className="col-head"; el.textContent=t; return el; }
+function timeCell(t){ const el=document.createElement("div"); el.className="time"; el.textContent=t; return el; }
+function buildGrid(){
+  grid.innerHTML="";
+  grid.appendChild(colHead(""));
+  for(const d of DAYS) grid.appendChild(colHead(d));
+  for(let i=0;i<SLOTS;i++){
+    grid.appendChild(timeCell(minutesToLabel(START_MIN+i*STEP)));
+    for(let d=0;d<7;d++){
+      const b=document.createElement("button");
+      b.className="cell"; b.dataset.day=d; b.dataset.slot=i;
+      b.addEventListener("click", onCellClick);
+      grid.appendChild(b);
+    }
   }
-}
-
-function setStatus(msg){ document.getElementById('status').textContent = msg; }
-
-// Day view
-function rangesFromArray(arr){
-  const ranges=[]; let i=0;
-  while(i<arr.length){
-    if(arr[i]===1){ const s=i; while(i<arr.length && arr[i]===1) i++; const e=i;
-      ranges.push(`${minutesToLabel(START_MINUTES+s*SLOT_MINUTES)} – ${minutesToLabel(START_MINUTES+e*SLOT_MINUTES)}`); }
-    else i++;
-  }
-  return ranges;
-}
-function renderDayView(){
-  const dayIdx = Number(document.getElementById('viewDay').value||0);
-  const html = DEFAULT_USERS.map(u=>{
-    ensureUser(u);
-    const ranges = rangesFromArray(state.users[u][`d${dayIdx}`] || []);
-    return `<div style="margin:6px 0"><strong>${u}</strong>: ${ranges.length? ranges.join(', ') : 'Free all day'}</div>`;
-  }).join('');
-  document.getElementById('daySummary').innerHTML = html || 'No data yet.';
-}
-
-// ===== Load/Save (autosave) =====
-async function loadFromGitHub(){
-  const res = await fetch(API_URL, { method:'GET' });
-  if(!res.ok){ setStatus('Failed to load – configure API'); return; }
-  state = await res.json(); if(!state.users) state.users={}; if(!state.log) state.log=[];
-  ensureDefaults();
-  const user = document.getElementById('user').value.trim() || DEFAULT_USERS[0];
-  document.getElementById('user').value = user;
-  renderForUser(user);
-  renderLog();
-  renderDayView();
-  setStatus('Loaded latest from GitHub.');
+  // day selector for team view
+  const daySel=document.getElementById("viewDay");
+  if(daySel && !daySel.options.length){ DAYS.forEach((n,idx)=>{const o=document.createElement("option");o.value=idx;o.textContent=n;daySel.appendChild(o);}); }
 }
 
 function renderForUser(name){
   ensureUser(name);
-  document.querySelectorAll('.cell-btn').forEach(btn=>btn.classList.remove('busy'));
-  for(let d=0; d<7; d++){
-    const arr = state.users[name][`d${d}`] || [];
+  document.querySelectorAll(".cell").forEach(b=>b.classList.remove("busy"));
+  for(let d=0;d<7;d++){
+    const a=state.users[name][`d${d}`]||[];
     for(let i=0;i<SLOTS;i++){
-      if(arr[i]===1){
-        const btn = document.querySelector(`.cell-btn[data-day="${d}"][data-slot="${i}"]`);
-        if(btn) btn.classList.add('busy');
+      if(a[i]===1){
+        const b=document.querySelector(`.cell[data-day="${d}"][data-slot="${i}"]`);
+        if(b) b.classList.add("busy");
       }
     }
   }
 }
 
-function collectUserChanges(){
-  const user = document.getElementById('user').value.trim(); if(!user) return null;
-  ensureUser(user);
-  const updated = Object.fromEntries(Array.from({length:7},(_,d)=>[
-    `d${d}`, Array.from({length:SLOTS},(__,i)=> document.querySelector(`.cell-btn[data-day="${d}"][data-slot="${i}"]`).classList.contains('busy')?1:0 )
-  ]));
-  const prev = state.users[user] || {};
-  const diffs = [];
-  for(let d=0; d<7; d++){ const key=`d${d}`; for(let i=0;i<SLOTS;i++){ if((prev[key]?.[i]||0)!==updated[key][i]) diffs.push({day:d,slot:i,value:updated[key][i]}); }}
-  state.users[user] = updated;
-  state.log.unshift({ ts:new Date().toISOString(), user, reason:'update', changes: diffs.slice(0,600) });
-  state.log = state.log.slice(0,5000);
-  return true;
+function onCellClick(e){
+  if(currentTab!=="fill") return; // locked in Team view
+  const name=document.getElementById("user").value.trim();
+  if(!name) return alert("Enter/select your name first");
+  ensureUser(name);
+  const d=+e.currentTarget.dataset.day, i=+e.currentTarget.dataset.slot;
+  const mode=document.getElementById("edit").value;
+  const v = (mode==="mark") ? 1 : 0;
+  const arr=state.users[name][`d${d}`];
+  if(arr[i]!==v){
+    arr[i]=v;
+    e.currentTarget.classList.toggle("busy", v===1);
+    queueSave(name);
+  }
 }
 
-async function saveToGitHub(){
-  // merge latest → avoid overwriting others
-  const latestRes = await fetch(API_URL, { method:'GET' });
-  const latest = latestRes.ok ? await latestRes.json() : { users:{}, log:[] };
-  const merged = { users: { ...latest.users, ...state.users }, log: state.log };
-  const res = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(merged) });
-  if(!res.ok){ setStatus('Save failed – check API'); return; }
-  const out = await res.json();
-  setStatus('Autosaved. Commit: ' + (out.commit || 'ok'));
+// ---------- clear helpers ----------
+function clearSelectedDayForUser(name, dayIndex){
+  ensureUser(name);
+  state.users[name][`d${dayIndex}`] = Array.from({length:SLOTS},()=>0);
+}
+function clearWholeWeekForUser(name){
+  ensureUser(name);
+  for(let d=0;d<7;d++) state.users[name][`d${d}`]=Array.from({length:SLOTS},()=>0);
+}
+
+// ---------- load/save ----------
+async function loadFromGitHub(){
+  try{
+    const r=await fetch(API_URL,{method:"GET"});
+    if(!r.ok){ setStatus("Failed to load – configure API"); return; }
+    const data=await r.json(); state.users=data.users||{}; state.log=data.log||[];
+    ensureDefaults();
+    const name=document.getElementById("user").value.trim()||DEFAULT_USERS[0];
+    document.getElementById("user").value=name;
+    renderForUser(name); renderLog(); renderDaySummary();
+    setStatus("Loaded latest from GitHub.");
+  }catch{ setStatus("Failed to load – network/API"); }
+}
+
+function collectSnapshotFor(user){
+  ensureUser(user);
+  const snap=Object.fromEntries(Array.from({length:7},(_,d)=>[
+    `d${d}`, Array.from({length:SLOTS},(__,i)=> document.querySelector(`.cell[data-day="${d}"][data-slot="${i}"]`).classList.contains("busy")?1:0 )
+  ]));
+  const prev=state.users[user]||{};
+  const diffs=[];
+  for(let d=0;d<7;d++){ const k=`d${d}`; for(let i=0;i<SLOTS;i++){ if((prev[k]?.[i]||0)!==snap[k][i]) diffs.push({day:d,slot:i,value:snap[k][i]}); } }
+  state.users[user]=snap;
+  state.log.unshift({ts:new Date().toISOString(),user,reason:"update",changes:diffs.slice(0,600)});
+  state.log=state.log.slice(0,5000);
 }
 
 let saveTimer=null;
-function scheduleSave(){
-  if(!collectUserChanges()) return;
+function queueSave(user){
+  collectSnapshotFor(user);
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveToGitHub, 900); // debounce autosave
+  saveTimer=setTimeout(saveToGitHub, 800);
 }
 
-// ===== Boot =====
+async function saveToGitHub(){
+  try{
+    // merge latest to avoid overwriting teammates
+    const latestRes=await fetch(API_URL,{method:"GET"});
+    const latest=latestRes.ok?await latestRes.json():{users:{},log:[]};
+    const merged={users:{...latest.users, ...state.users}, log: state.log};
+    const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(merged)});
+    if(!r.ok){ setStatus("Save failed – check API"); return; }
+    const out=await r.json();
+    setStatus("Autosaved. Commit: "+(out.commit||"ok"));
+  }catch{ setStatus("Save failed – network/API"); }
+}
+
+// ---------- team day summary ----------
+function rangesFrom(arr){
+  const ranges=[]; let i=0;
+  while(i<arr.length){
+    if(arr[i]===1){
+      const s=i; while(i<arr.length && arr[i]===1) i++; const e=i;
+      ranges.push(`${minutesToLabel(START_MIN+s*STEP)} – ${minutesToLabel(START_MIN+e*STEP)}`);
+    } else i++;
+  }
+  return ranges;
+}
+function renderDaySummary(){
+  if(currentTab!=="see") return;
+  const dayIdx=+document.getElementById("viewDay").value||0;
+  document.getElementById("dayName").textContent = DAYS[dayIdx];
+  const tbody=document.getElementById("dayBody");
+  tbody.innerHTML="";
+  DEFAULT_USERS.forEach(u=>{
+    ensureUser(u);
+    const tr=document.createElement("tr");
+    const nameTd=document.createElement("td"); nameTd.textContent=u; tr.appendChild(nameTd);
+    const rangesTd=document.createElement("td");
+    const rangesList=rangesFrom(state.users[u][`d${dayIdx}`]||[]);
+    rangesTd.textContent = rangesList.length? rangesList.join(", ") : "Free all day";
+    tr.appendChild(rangesTd);
+    tbody.appendChild(tr);
+  });
+}
+
+async function copyDaySummary(){
+  const dayIdx=+document.getElementById("viewDay").value||0;
+  const lines = DEFAULT_USERS.map(u=>{
+    const arr=state.users[u]?.[`d${dayIdx}`]||[];
+    const r=rangesFrom(arr);
+    return `${u}: ${r.length? r.join(", "):"Free all day"}`;
+  });
+  const txt = `Team availability for ${DAYS[dayIdx]}:\n`+lines.join("\n");
+  await navigator.clipboard.writeText(txt);
+  setStatus("Summary copied to clipboard.");
+}
+
+// ---------- log ----------
+function renderLog(){
+  const el=document.getElementById("log"); if(!state.log?.length){ el.innerHTML="<div>No changes yet.</div>"; return; }
+  el.innerHTML=state.log.slice(0,50).map(row=>{
+    const when=new Date(row.ts).toLocaleString(); const n=row.changes?.length||0;
+    return `<div style="padding:6px 0;border-bottom:1px dashed #22242b">
+      <strong>${row.user||"Unknown"}</strong>
+      <span style="font-size:11px;padding:2px 8px;border:1px solid #2a2e35;border-radius:999px;background:#0f1116;margin-left:6px">${row.reason||"update"}</span>
+      edited <strong>${n}</strong> slot${n===1?"":"s"} <span style="color:var(--muted)">(${when})</span>
+    </div>`;
+  }).join("");
+}
+
+// ---------- tab switching ----------
+let currentTab="fill";
+function switchTo(tab){
+  currentTab=tab;
+  document.getElementById("fillControls").style.display = tab==="fill" ? "flex" : "none";
+  document.getElementById("seeControls").style.display  = tab==="see"  ? "flex" : "none";
+  document.getElementById("dayPanel").style.display     = tab==="see"  ? "block": "none";
+  if(tab==="see") renderDaySummary();
+}
+
+// ---------- hooks ----------
 buildGrid(); ensureDefaults();
-document.getElementById('tabFill').addEventListener('click', ()=> switchTab('fill'));
-document.getElementById('tabSee').addEventListener('click',  ()=> switchTab('see'));
-document.getElementById('user').addEventListener('change', (e)=>{ const n=e.target.value.trim(); if(!n) return; ensureUser(n); renderForUser(n); });
 
-document.getElementById('viewDay').addEventListener('change', renderDayView);
+document.getElementById("tab-fill").addEventListener("click", ()=> switchTo("fill"));
+document.getElementById("tab-see").addEventListener("click",  ()=> switchTo("see"));
 
-(async function bootstrap(){
-  await loadFromGitHub();                 // initial load
-  setInterval(loadFromGitHub, 20000);     // live auto-refresh
-  setStatus('Ready. Autosave is ON.');
+document.getElementById("user").addEventListener("change", e=>{
+  const name=e.target.value.trim(); if(!name) return; ensureUser(name); renderForUser(name);
+});
+
+document.getElementById("viewDay").addEventListener("change", renderDaySummary);
+document.getElementById("copySummary").addEventListener("click", copyDaySummary);
+
+document.getElementById("clearDay").addEventListener("click", ()=>{
+  const name=document.getElementById("user").value.trim(); if(!name) return alert("Enter/select your name first");
+  const dayIdx=+document.getElementById("viewDay").value||0;
+  clearSelectedDayForUser(name, dayIdx);
+  renderForUser(name); renderDaySummary(); queueSave(name);
+});
+
+document.getElementById("clearWeek").addEventListener("click", ()=>{
+  const name=document.getElementById("user").value.trim(); if(!name) return alert("Enter/select your name first");
+  clearWholeWeekForUser(name);
+  renderForUser(name); renderDaySummary(); queueSave(name);
+});
+
+// first load + live refresh
+(async function boot(){
+  await loadFromGitHub();
+  // default selections
+  document.getElementById("user").value = document.getElementById("user").value || DEFAULT_USERS[0];
+  document.getElementById("viewDay").value = "1"; // Monday
+  setInterval(loadFromGitHub, 20000);
+  setStatus("Ready. Autosave is ON.");
 })();
 </script>
 </body>
