@@ -7,22 +7,23 @@
   <style>
     :root{
       --bg:#0b0c10; --card:#121318; --ink:#e9eef6; --muted:#8a8f98;
-      --accent:#6aa7ff; --danger:#ff6b6b; --grid:#ffffff;
+      --accent:#6aa7ff; --danger:#ff6b6b; --grid:#ffffff; /* WHITE BORDERS */
     }
     html,body{height:100%}
     body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto}
     .container{max-width:1120px;margin:24px auto;padding:0 16px}
     h1{margin:0 0 12px 0;font-size:22px}
-    .card{background:var(--card);border:1px solid #1a1c22;border-radius:14px;box-shadow:0 1px 0 #000,0 30px 80px rgba(0,0,0,.35)}
-    .toolbar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:10px;padding:12px;border-bottom:1px solid #1a1c22}
+    .card{background:var(--card);border:1px solid var(--grid);border-radius:14px;box-shadow:0 1px 0 #000,0 30px 80px rgba(0,0,0,.35);overflow:hidden}
+
+    .toolbar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:10px;padding:12px;border-bottom:1px solid var(--grid)}
     .group{display:flex;gap:8px;align-items:center}
     label{font-size:12px;color:var(--muted)}
-    input[type=text],select,button{background:#0f1116;color:var(--ink);border:1px solid #2a2e35;border-radius:10px;padding:8px 10px}
+    input[type=text],select,button{background:#0f1116;color:var(--ink);border:1px solid var(--grid);border-radius:10px;padding:8px 10px}
     input[type=text]:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(106,167,255,.12)}
-    .tabs button{background:#10233c;border-color:#153258}
-    .ghost{background:transparent;border-color:#2a2e35}
-    .warn{background:#3a2f0c;border-color:#5e4a13}
-    .legend{display:flex;gap:16px;font-size:12px;padding:8px 12px;color:var(--muted)}
+    .tabs button{background:#10233c;border-color:var(--grid)}
+    .ghost{background:transparent}
+    .warn{background:#3a2f0c;border-color:var(--grid)}
+    .legend{display:flex;gap:16px;font-size:12px;padding:8px 12px;color:var(--muted);border-bottom:1px solid var(--grid)}
       .chip{display:inline-flex;gap:8px;align-items:center}
       .chip .dot{width:16px;height:16px;border:1px solid var(--grid);border-radius:4px;position:relative}
       .chip .dot.busy::after{content:"✕";position:absolute;inset:0;display:grid;place-items:center;color:var(--danger);font-weight:700;font-size:12px}
@@ -30,20 +31,20 @@
     .grid{display:grid;grid-template-columns:88px repeat(7,1fr);background:#0b0d12;border-top:1px solid var(--grid);border-left:1px solid var(--grid)}
     .col-head,.time,.cell{border-right:1px solid var(--grid);border-bottom:1px solid var(--grid)}
     .col-head{position:sticky;top:0;z-index:2;background:#141722;text-align:center;padding:8px 6px;font-weight:600}
-    .time{background:#0f1116;color:var(--muted);padding:6px 8px;position:sticky;left:0;z-index:1;font-variant-numeric:tabular-nums}
+    .time{background:#0f1116;color:var(--muted);padding:6px 8px;position:sticky;left:0;z-index:1;font-variant-numeric:tabular-nums;text-align:right}
     .cell{height:30px;background:transparent;border:none}
     .cell.busy::after{content:"✕";color:var(--danger);font-weight:800;display:grid;place-items:center}
     .cell:hover{background:rgba(106,167,255,.08)}
     .cell.busy:hover{background:rgba(255,107,107,.10)}
-    .footer{padding:10px 12px;display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:12px;border-top:1px solid #1a1c22}
+    .footer{padding:10px 12px;display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:12px;border-top:1px solid var(--grid)}
 
     /* Day matrix */
-    #dayPanel{display:none;padding:12px;border-top:1px dashed #2a2e35}
-    #dayMatrix{overflow:auto;border:1px solid #2a2e35;border-radius:12px}
-    table.matrix{border-collapse:collapse;width:100%;background:#0b0d12}
-    .matrix th,.matrix td{border:1px solid #2a2e35;padding:6px 8px}
+    #dayPanel{display:none;padding:12px;border-top:1px dashed var(--grid)}
+    #dayMatrix{overflow:auto;border:1px solid var(--grid);border-radius:12px}
+    table.matrix{border-collapse:collapse;width:100%;background:#0b0d12;border:1px solid var(--grid)}
+    .matrix th,.matrix td{border:1px solid var(--grid);padding:6px 8px}
     .matrix th{background:#141722;position:sticky;top:0}
-    .matrix .timeCol{position:sticky;left:0;background:#0f1116;color:var(--muted)}
+    .matrix .timeCol{position:sticky;left:0;background:#0f1116;color:var(--muted);text-align:right}
     .x{color:var(--danger);font-weight:800;text-align:center}
 
     @media (max-width:720px){
@@ -72,7 +73,7 @@
         <label for="edit">Edit</label>
         <select id="edit">
           <option value="mark">Mark busy</option>
-          <option value="clear">Clear</option>
+          <option value="clear">Mark free</option>
         </select>
 
         <button id="clearDay" class="ghost">Clear selected day</button>
@@ -116,20 +117,12 @@
 
 <script>
 // ===== CONFIG =====
-// If HTML and API are same Vercel project, keep relative:
-const API_URL = "/api/availability";
-// If hosted elsewhere, use your full Vercel URL:
-// const API_URL = "https://<your-vercel-app>.vercel.app/api/availability";
-
+const API_URL = "/api/availability"; // same Vercel project
 const DEFAULT_USERS = ["Harsha","Sarmad","Sneha Deshpande","Vinay","Bhavishya"];
 const DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const START_MIN = 0, END_MIN = 24*60, STEP = 30;
 const SLOTS = Math.floor((END_MIN-START_MIN)/STEP);
-
-function minutesToLabel(m){
-  const hh=Math.floor(m/60)%24, mm=m%60, ampm=hh>=12?"PM":"AM", h12=((hh+11)%12)+1;
-  return `${h12}:${mm.toString().padStart(2,"0")} ${ampm}`;
-}
+function minutesToLabel(m){ const hh=Math.floor(m/60)%24, mm=m%60, ampm=hh>=12?"PM":"AM", h12=((hh+11)%12)+1; return `${h12}:${mm.toString().padStart(2,"0")} ${ampm}`; }
 function setStatus(msg){ document.getElementById("status").textContent = msg; }
 
 // ===== State =====
@@ -151,7 +144,7 @@ function colHead(t){ const el=document.createElement("div"); el.className="col-h
 function timeCell(t){ const el=document.createElement("div"); el.className="time"; el.textContent=t; return el; }
 function buildGrid(){
   grid.innerHTML="";
-  grid.appendChild(colHead(""));
+  grid.appendChild(colHead("Time"));
   for(const d of DAYS) grid.appendChild(colHead(d));
   for(let i=0;i<SLOTS;i++){
     grid.appendChild(timeCell(minutesToLabel(START_MIN+i*STEP)));
@@ -187,7 +180,7 @@ function onCellClick(e){
   ensureUser(name);
   const d=+e.currentTarget.dataset.day, i=+e.currentTarget.dataset.slot;
   const mode=document.getElementById("edit").value;
-  const v = (mode==="mark") ? 1 : 0;
+  const v = (mode==="mark") ? 1 : 0; // mark busy OR mark free
   const arr=state.users[name][`d${d}`];
   if(arr[i]!==v){
     arr[i]=v;
@@ -206,7 +199,7 @@ function clearWholeWeekForUser(name){
   for(let d=0;d<7;d++) state.users[name][`d${d}`]=Array.from({length:SLOTS},()=>0);
 }
 
-// ===== Load/Save =====
+// ===== Load/Save (GitHub via API) =====
 async function loadFromGitHub(){
   try{
     const r=await fetch(API_URL,{method:"GET"});
@@ -294,9 +287,9 @@ function renderLog(){
   const el=document.getElementById("log"); if(!state.log?.length){ el.innerHTML="<div>No changes yet.</div>"; return; }
   el.innerHTML=state.log.slice(0,50).map(row=>{
     const when=new Date(row.ts).toLocaleString(); const n=row.changes?.length||0;
-    return `<div style="padding:6px 0;border-bottom:1px dashed #22242b">
+    return `<div style="padding:6px 0;border-bottom:1px dashed var(--grid)">
       <strong>${row.user||"Unknown"}</strong>
-      <span style="font-size:11px;padding:2px 8px;border:1px solid #2a2e35;border-radius:999px;background:#0f1116;margin-left:6px">${row.reason||"update"}</span>
+      <span style="font-size:11px;padding:2px 8px;border:1px solid var(--grid);border-radius:999px;background:#0f1116;margin-left:6px">${row.reason||"update"}</span>
       edited <strong>${n}</strong> slot${n===1?"":"s"} <span style="color:var(--muted)">(${when})</span>
     </div>`;
   }).join("");
@@ -336,8 +329,8 @@ buildGrid(); ensureDefaults();
 (async function boot(){
   await loadFromGitHub();
   document.getElementById("user").value = document.getElementById("user").value || DEFAULT_USERS[0];
-  document.getElementById("viewDay").value = "1"; // Monday default
-  setInterval(loadFromGitHub, 20000);
+  document.getElementById("viewDay").value = "0"; // Sunday default
+  setInterval(loadFromGitHub, 20000); // pull latest regularly
   setStatus("Ready. Autosave is ON.");
 })();
 </script>
