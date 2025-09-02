@@ -73,7 +73,7 @@
       <button id="btnSee">See by Day</button>
     </div>
 
-    <!-- FILL AVAILABILITY (only visible in Fill mode) -->
+    <!-- FILL AVAILABILITY -->
     <div id="barFill" class="bar">
       <div class="group">
         <label for="user">Name</label>
@@ -86,21 +86,20 @@
           <option value="clear">Mark free</option>
         </select>
       </div>
-      <button id="clearAll" class="danger">Clear all (this browser)</button>
-      <button id="sync" class="ok" hidden>Sync to GitHub</button>
+      <button id="clearMine" class="danger">Clear my availability</button>
     </div>
 
     <div id="legendFill" class="legend">
       <span class="chip"><span class="dot"></span> Free (leave empty)</span>
       <span class="chip"><span class="dot busy"></span> Busy (red ✕)</span>
-      <span>Local save is instant. (Unhide “Sync to GitHub” to push)</span>
+      <span>Autosaves to GitHub. Everyone sees updates.</span>
     </div>
 
     <div id="gridWrap" class="grid-wrap">
       <div id="grid" class="grid"><!-- built by JS --></div>
     </div>
 
-    <!-- SEE BY DAY (only visible in See mode) -->
+    <!-- SEE BY DAY -->
     <div id="barSee" class="bar" hidden>
       <div class="group">
         <label for="viewDay">Day</label>
@@ -114,7 +113,7 @@
     <div id="dayMatrix" hidden></div>
 
     <div class="footer">
-      <span id="status">Ready.</span>
+      <span id="status">Loading…</span>
       <span>Tip: choose your name, click cells.</span>
     </div>
   </div>
@@ -122,11 +121,10 @@
 
 <script>
 /* ====== CONFIG ====== */
-const API_URL = "/api/availability"; // same Vercel project (optional)
+const API_URL = "/api/availability"; // same Vercel project
 const DEFAULT_USERS = ["Harsha","Sarmad","Sneha Deshpande","Vinay","Bhavishya"];
 const DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const START=0, END=24*60, STEP=30, SLOTS=Math.floor((END-START)/STEP);
-const LS_KEY="teamAvailability:v3";
 
 /* ====== helpers ====== */
 const $ = id => document.getElementById(id);
@@ -169,31 +167,63 @@ function renderForUser(name){
     }
   }
 }
+
+/* ====== live sync (GitHub via API) ====== */
+async function pullLatest(silent=false){
+  try{
+    const latest = await fetch(API_URL, {cache:"no-store"}).then(r=>r.ok?r.json():null);
+    if(!latest) throw new Error("bad response");
+    // Merge: keep all users from server; add missing local users (if any)
+    state = {
+      users: {...latest.users},
+      log: Array.isArray(latest.log) ? latest.log : []
+    };
+    ensureUser($("user").value);
+    renderForUser($("user").value);
+    if(!silent){ setStatus("Up to date."); }
+    if(currentMode==="see") renderDayMatrix();
+  }catch(e){
+    if(!silent){ setStatus("Failed to pull latest."); }
+  }
+}
+
+let saveQueue = Promise.resolve();
+async function pushLatest(commitUser){
+  // Always fetch fresh first, merge our user, then post to avoid overwrites
+  saveQueue = saveQueue.then(async ()=>{
+    try{
+      setStatus("Saving…");
+      const latest = await fetch(API_URL, {cache:"no-store"}).then(r=>r.ok?r.json():{users:{},log:[]});
+      const merged = { users: {...latest.users, ...state.users}, log: [
+        { ts:new Date().toISOString(), user: commitUser||$("user").value, reason:"update" },
+        ...latest.log
+      ].slice(0,5000) };
+      const r = await fetch(API_URL,{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(merged)
+      });
+      if(!r.ok){ setStatus("Save failed."); return; }
+      const out = await r.json();
+      setStatus(`Saved. Commit ${out.commit||"ok"}.`);
+    }catch(e){
+      setStatus("Save failed (network).");
+    }
+  });
+  return saveQueue;
+}
+
+/* ====== interactions ====== */
 function onCellClick(e){
-  if(currentMode!=="fill") return; // locked in See mode
+  if(currentMode!=="fill") return;
   const name=$("user").value; ensureUser(name);
   const d=+e.currentTarget.dataset.day, i=+e.currentTarget.dataset.slot;
   const v = $("edit").value==="mark" ? 1 : 0;
   if(state.users[name][`d${d}`][i]!==v){
     state.users[name][`d${d}`][i]=v;
     e.currentTarget.classList.toggle("busy", v===1);
-    saveLocal(); logChange(name,d,i,v);
+    pushLatest(name);
   }
-}
-
-/* ====== storage + (optional) GitHub ====== */
-function saveLocal(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
-function loadLocal(){ try{ const raw=localStorage.getItem(LS_KEY); if(raw){ const j=JSON.parse(raw); state.users=j.users||{}; state.log=j.log||[]; } }catch{} }
-function logChange(user,day,slot,value){ state.log.unshift({ts:new Date().toISOString(),user,reason:"update",changes:[{day,slot,value}]}); state.log=state.log.slice(0,5000); }
-async function syncToGitHub(){
-  setStatus("Syncing…");
-  try{
-    const latest=await fetch(API_URL).then(r=>r.ok?r.json():{users:{},log:[]});
-    const merged={users:{...latest.users, ...state.users}, log: state.log};
-    const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(merged)});
-    if(!r.ok) return setStatus("Sync failed");
-    const out=await r.json(); setStatus("Synced. Commit: "+(out.commit||"ok"));
-  }catch{ setStatus("Sync failed (network)"); }
 }
 
 /* ====== see-by-day matrix ====== */
@@ -214,15 +244,18 @@ function renderDayMatrix(){
   container.innerHTML=html;
 }
 
-/* ====== Clear all (this browser) ====== */
-$("clearAll").addEventListener("click", ()=>{
-  if(!confirm("Clear all data in THIS browser? (GitHub data unchanged until you sync)")) return;
-  state={users:{},log:[]}; DEFAULT_USERS.forEach(ensureUser);
-  renderForUser($("user").value); saveLocal(); setStatus("Cleared (local)");
+/* ====== Clear mine ====== */
+$("clearMine").addEventListener("click", async ()=>{
+  const who=$("user").value;
+  if(!confirm(`Clear ALL availability for ${who}? This updates GitHub for everyone.`)) return;
+  ensureUser(who);
+  for(let d=0; d<7; d++){ state.users[who][`d${d}`]=Array.from({length:SLOTS},()=>0); }
+  renderForUser(who);
+  await pushLatest(who);
+  if(currentMode==="see") renderDayMatrix();
 });
-$("sync").addEventListener("click", syncToGitHub);
 
-/* ====== Switcher (ONLY ONE FORM VISIBLE) ====== */
+/* ====== Switcher ====== */
 let currentMode="fill";
 function goFill(){
   currentMode="fill";
@@ -241,16 +274,15 @@ $("btnFill").addEventListener("click", goFill);
 $("btnSee").addEventListener("click",  goSee);
 
 /* ====== hooks ====== */
-$("user").addEventListener("change", e=>{ ensureUser(e.target.value); renderForUser(e.target.value); });
+$("user").addEventListener("change", ()=>{ ensureUser($("user").value); renderForUser($("user").value); });
 $("viewDay").addEventListener("change", renderDayMatrix);
 
 /* ====== boot ====== */
-buildGrid(); loadLocal(); ensureDropdowns();
-DEFAULT_USERS.forEach(ensureUser);
+buildGrid(); ensureDropdowns();
 $("user").value = DEFAULT_USERS[0];
-renderForUser(DEFAULT_USERS[0]);
 $("viewDay").value = "0";
-setStatus("Ready.");
+pullLatest(); // initial load from GitHub (shared)
+setInterval(()=>pullLatest(true), 10000); // live refresh every 10s (silent)
 </script>
 </body>
 </html>
